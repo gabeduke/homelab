@@ -6,4 +6,4 @@ resources:
 - slack-alert.yaml
 - slack-provider.yaml
 bases:
-  - "../apps/endpoints"
+  - "../../../apps/endpoints"
