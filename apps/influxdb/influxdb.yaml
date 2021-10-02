@@ -1,0 +1,13 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: influxdb
+  namespace: kube-system
+spec:
+  chart: influxdb
+  repo: https://helm.influxdata.com/
+  targetNamespace: influxdb
+  set:
+  valuesContent: |-
+    image:
+      tag: 1.8.0
