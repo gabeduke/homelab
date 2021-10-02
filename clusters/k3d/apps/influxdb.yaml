@@ -7,6 +7,7 @@ spec:
   interval: 5m
   install:
     createNamespace: true
+  targetNamespace: influxdb
   chart:
     spec:
       chart: influxdb
