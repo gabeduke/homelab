@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
 - gotk-components.yaml
 - gotk-sync.yaml
-- slack.yaml
+- slack-alert.yaml
+- slack-provider.yaml
