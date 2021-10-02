@@ -22,4 +22,5 @@ spec:
     persistence:
       enabled: false
     env:
-      - INFLUXDB_DB: telegraf
+      - name: INFLUXDB_DB
+        value: telegraf
