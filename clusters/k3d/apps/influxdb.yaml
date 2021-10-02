@@ -22,4 +22,4 @@ spec:
     persistence:
       enabled: false
     env:
-      INFLUXDB_DB: telegraf
+      - INFLUXDB_DB: telegraf
