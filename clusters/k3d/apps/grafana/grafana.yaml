@@ -17,11 +17,8 @@ spec:
         namespace: flux-system
       interval: 1m
   values:
-    env:
-      - name: GF_EXPLORE_ENABLED
-        value: true
-    admin:
-      existingSecret: grafana-credentials
+    # admin:
+    #   existingSecret: grafana-credentials
     sidecar:
       datasources:
         enabled: true
