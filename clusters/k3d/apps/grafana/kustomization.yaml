@@ -3,10 +3,10 @@ kind: Kustomization
 configMapGenerator:
   - name: grafana-dashboards
     files:
-      - dashboard-iot.json
+      - data/dashboard-iot.json
 generatorOptions:
   disableNameSuffixHash: true
   labels:
     grafana_dashboard: "1"
 resources:
-  - datasource-influxdb.yaml
+  - data/datasource-influxdb.yaml
