@@ -13,3 +13,7 @@ spec:
     repoURL: {{ .Values.spec.source.homelab }}
     path: apps/reap
   project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

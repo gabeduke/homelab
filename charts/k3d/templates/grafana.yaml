@@ -26,3 +26,8 @@ spec:
           notifiers:
             enabled: true
             label: grafana_notifiers
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

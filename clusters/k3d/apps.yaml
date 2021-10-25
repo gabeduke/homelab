@@ -11,3 +11,7 @@ spec:
     repoURL: https://github.com/gabeduke/homelab.git
     path: charts/k3d
   project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
