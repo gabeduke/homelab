@@ -13,7 +13,7 @@ data:
       access: proxy
       database: telegraf
       user: 'root'
-      url: http://influxdb-influxdb.influxdb.svc:8086
+      url: http://influxdb.influxdb.svc:8086
       jsonData:
         timeInterval: "10s"
       secureJsonData:
