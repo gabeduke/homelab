@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: influxdb
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: influxdb
+    server: {{ .Values.spec.destination.server }}
+  source:
+    repoURL: 'https://helm.influxdata.com/'
+    targetRevision: "4.10.0"
+    chart: influxdb
+    helm:
+      values: |-
+        image:
+          tag: 1.8.9
+        persistence:
+          enabled: false
+        env:
+          - name: INFLUXDB_DB
+            value: telegraf
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

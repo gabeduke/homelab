@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: grafana
+    server: {{ .Values.spec.destination.server }}
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    helm:
+      values:
+        # admin:
+        #   existingSecret: grafana-credentials
+        sidecar:
+          datasources:
+            enabled: true
+            label: grafana_datasource
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+          notifiers:
+            enabled: true
+            label: grafana_notifiers
