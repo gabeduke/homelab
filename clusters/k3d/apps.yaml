@@ -9,5 +9,5 @@ spec:
     server: https://kubernetes.default.svc
   source:
     repoURL: https://github.com/gabeduke/homelab.git
-    path: argocd/k3d/apps
+    path: charts/k3d
   project: default
