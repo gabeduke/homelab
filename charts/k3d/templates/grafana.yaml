@@ -13,9 +13,9 @@ spec:
     repoURL: https://grafana.github.io/helm-charts
     chart: grafana
     helm:
-      values:
-        # admin:
-        #   existingSecret: grafana-credentials
+      values: |-
+        admin:
+          existingSecret: grafana-credentials
         sidecar:
           datasources:
             enabled: true
