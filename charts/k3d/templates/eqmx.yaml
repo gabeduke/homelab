@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://repos.emqx.io/charts
     chart: emqx
-    targetRevision: "4.4.0"
+    targetRevision: "4.3.8"
   project: default
   syncPolicy:
     automated:
