@@ -10,7 +10,7 @@ spec:
     namespace: gmqtt
     server: {{ .Values.spec.destination.server }}
   source:
-    repoURL: https://github.com/hb-chen
+    repoURL: https://github.com/hb-chen/gmqtt.git
     path: cicd/helm
   project: default
   syncPolicy:
