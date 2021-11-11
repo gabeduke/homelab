@@ -11,7 +11,7 @@ spec:
     server: {{ .Values.spec.destination.server }}
   source:
     repoURL: https://hivemq.github.io/helm-charts
-    chart: hivemq
+    chart: hivemq-operator
     targetRevision: "0.9.2"
     # helm:
     #   values: |-
