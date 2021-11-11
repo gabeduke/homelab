@@ -12,6 +12,11 @@ spec:
   source:
     repoURL: https://github.com/hb-chen/gmqtt.git
     path: cicd/helm
+    helm:
+      values: |-
+        image:
+          repository: gmqtt/gmqttd
+          tag: v0.2.2
   project: default
   syncPolicy:
     automated:
