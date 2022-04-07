@@ -27,19 +27,19 @@ spec:
           notifiers:
             enabled: true
             label: grafana_notifiers
-          ingress:
-            enabled: true
-            annotations:
-              kubernetes.io/ingress.class: traefik
-              ingress.kubernetes.io/ssl-redirect: "true"
-              cert-manager.io/cluster-issuer: letsencrypt-prod
-            hosts:
+        ingress:
+          enabled: true
+          annotations:
+            kubernetes.io/ingress.class: traefik
+            ingress.kubernetes.io/ssl-redirect: "true"
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+          hosts:
+          - grafana.leetserve.com
+          - localhost
+          tls:
+          - hosts:
             - grafana.leetserve.com
-            - localhost
-            tls:
-            - hosts:
-              - grafana.leetserve.com
-              secretName: grafana-tls
+            secretName: grafana-tls
   project: default
   syncPolicy:
     automated:
