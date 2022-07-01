@@ -4,6 +4,4 @@ kind: Kustomization
 namespace: argocd
 resources:
 - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-- namespace_argocd.yaml
-- namespace_grafana.yaml
 - apps.yaml

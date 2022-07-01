@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   source:
     repoURL: https://github.com/gabeduke/homelab.git
-    path: charts/k3d
+    path: charts/iot
   project: default
   syncPolicy:
     automated:
