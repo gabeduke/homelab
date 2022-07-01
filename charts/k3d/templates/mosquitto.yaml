@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mosquitto
+  namespace: argocd
+spec:
+  destination:
+    namespace: mosquitto
+    server: {{ .Values.spec.destination.server }}
+  project: default
+  source:
+    chart: mosquitto
+    repoURL: https://k8s-at-home.com/charts/
+    targetRevision: 4.4.0
+    helm:
+      parameters:
+      - name: service.main.type
+        value: LoadBalancer
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
