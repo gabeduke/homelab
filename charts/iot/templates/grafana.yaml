@@ -27,13 +27,15 @@ spec:
           notifiers:
             enabled: true
             label: grafana_notifiers
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: grafana.leetserve.com
         ingress:
           enabled: true
           annotations:
             kubernetes.io/ingress.class: traefik
             ingress.kubernetes.io/ssl-redirect: "true"
             cert-manager.io/cluster-issuer: letsencrypt-prod
-            external-dns.alpha.kubernetes.io/hostname: grafana.leetserve.com
           hosts:
           - grafana.leetserve.com
           - localhost
