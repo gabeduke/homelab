@@ -15,7 +15,11 @@ spec:
     targetRevision: "6.6.1"
     helm:
       values: |-
-        aprovider: aws
+        image:
+          registry: k8s.gcr.io
+          repository: external-dns/external-dns
+          tag: v0.12.0
+        provider: aws
         aws:
           credentials:
             secretName: external-dns
