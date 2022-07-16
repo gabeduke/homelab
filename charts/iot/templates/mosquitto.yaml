@@ -13,9 +13,13 @@ spec:
     repoURL: https://k8s-at-home.com/charts/
     targetRevision: 4.4.0
     helm:
-      parameters:
-      - name: service.main.type
-        value: LoadBalancer
+      values: |-
+        service:
+          main:
+            type:
+              LoadBalancer
+            annotations:
+              - external-dns.alpha.kubernetes.io/hostname: mqtt.leetserve.com
   syncPolicy:
     automated:
       prune: true
