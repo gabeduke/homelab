@@ -1,7 +1,9 @@
-EXTERNAL_IP := 71.176.233.168
-ADVERTISE_IP := 192.168.86.53
-TOKEN = $(shell ssh ubuntu@pi1 sudo cat /var/lib/rancher/k3s/server/node-token)
-KUBECONFIG = $(shell ssh ubuntu@pi1 cat /etc/rancher/k3s/k3s.yaml)
+CONTROL_PLANE_NODE=ubuntu@pi-master
+WORKER1=ubuntu@pi-agent1
+WORKER2=ubuntu@pi-agent2
+
+TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/node-token)
+KUBECONFIG = $(shell ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml)
 
 iot:
 	kubectl create namespace argocd || true
@@ -16,19 +18,25 @@ argocd:
 	kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 uninstall:
-	ssh ubuntu@pi1 /usr/local/bin/k3s-uninstall.sh
-	ssh ubuntu@pi2 /usr/local/bin/k3s-agent-uninstall.sh
-	ssh ubuntu@pi3 /usr/local/bin/k3s-agent-uninstall.sh
+	ssh $(CONTROL_PLANE_NODE) /usr/local/bin/k3s-uninstall.sh
+	ssh $(WORKER1) /usr/local/bin/k3s-agent-uninstall.sh
+	ssh $(WORKER2) /usr/local/bin/k3s-agent-uninstall.sh
 
 apply-cluster:
-	ssh ubuntu@pi1 'export INSTALL_K3S_EXEC="--advertise-address=$(ADVERTISE_IP)" EXTERNAL_IP=$(EXTERNAL_IP) && sh run.sh'
-	ssh ubuntu@pi2 'export ADVERTISE_IP=$(ADVERTISE_IP) TOKEN=$(TOKEN) && sh run.sh'
-	ssh ubuntu@pi3 'export ADVERTISE_IP=$(ADVERTISE_IP) TOKEN=$(TOKEN) && sh run.sh'
+	ssh $(CONTROL_PLANE_NODE) sh run.sh
+	ssh $(WORKER1) 'export TOKEN=$(TOKEN) && sh run.sh'
+	ssh $(WORKER2) 'export TOKEN=$(TOKEN) && sh run.sh'
 
 get-kubeconfig:
-	ssh ubuntu@pi1 cat /etc/rancher/k3s/k3s.yaml
+	@ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml
 
 merge-kubeconfig:
 	cp ~/.kube/config ~/.kube/config.bak 
 	kubeconfig=~/.kube/config:kubeconfig kubectl config view --flatten > /tmp/config 
 	mv /tmp/config ~/.kube/config 
+
+sync:
+	scp scripts/control-plane/run.sh $(CONTROL_PLANE_NODE):/home/ubuntu/
+	scp scripts/control-plane/ip.sh $(CONTROL_PLANE_NODE):/home/ubuntu/
+	scp scripts/agent/run.sh $(WORKER1):/home/ubuntu/
+	scp scripts/agent/run.sh $(WORKER2):/home/ubuntu/

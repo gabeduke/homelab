@@ -10,17 +10,8 @@ spec:
     namespace: cert-manager
     server: {{ .Values.spec.destination.server }}
   source:
-    repoURL: https://charts.jetstack.io
-    chart: cert-manager
-    targetRevision: "1.8.2"
-    helm:
-      values: |-
-        installCRDs: true
-        prometheus:
-          enabled: false
-        global:
-          leaderElection:
-            namespace: cert-manager
+    repoURL: {{ .Values.spec.source.homelab }}
+    path: apps/cert-manager
   project: default
   syncPolicy:
     automated:
