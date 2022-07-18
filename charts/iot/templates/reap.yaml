@@ -10,8 +10,8 @@ spec:
     namespace: reap
     server: {{ .Values.spec.destination.server }}
   source:
-    repoURL: {{ .Values.spec.source.homelab }}
-    path: apps/reap
+    repoURL: https://github.com/gabeduke/reap
+    path: deploy/
   project: default
   syncPolicy:
     automated:
