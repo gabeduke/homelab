@@ -1,4 +1,4 @@
-**/*.env
 .vscode
-**/credentials
+**/*.env
+**/*.credentials
 **/kubeconfig
