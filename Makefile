@@ -5,13 +5,21 @@ WORKER2=ubuntu@pi-agent2
 TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/node-token)
 KUBECONFIG = $(shell ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml)
 
-iot:
+namespaces:
 	kubectl create namespace argocd || true
 	kubectl create namespace grafana || true
 	kubectl create namespace externaldns || true
-	kubectl kustomize clusters/iot | kubectl apply -f -
-	kubectl create secret generic -n grafana grafana-credentials --from-env-file=./hack/.env || true
+	kubectl create namespace wioc02 || true
+	kubectl create namespace wiotemp1 || true
+
+secrets:
+	kubectl create secret generic -n grafana grafana-credentials --from-env-file=./hack/grafana.env || true
+	kubectl create secret generic -n wioc02 --from-env-file=./hack/wioC02.env || true
+	kubectl create secret generic -n wiotemp1 --from-env-file=./hack/wiotemp1.env || true
 	kubectl create secret generic -n externaldns external-dns --from-file=./hack/credentials || true
+
+iot: namespaces secrets
+	kubectl kustomize clusters/iot | kubectl apply -f -
 
 argocd:
 	kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
