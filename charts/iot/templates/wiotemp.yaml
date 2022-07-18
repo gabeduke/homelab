@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: wiotemp
+  name: wiotemp1
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: wiotemp
+    namespace: wiotemp1
     server: {{ .Values.spec.destination.server }}
   source:
     repoURL: https://github.com/gabeduke/wio-temp-hu-logger
