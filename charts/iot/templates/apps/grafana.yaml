@@ -24,6 +24,7 @@ spec:
           dashboards:
             enabled: true
             label: grafana_dashboard
+            searchNamespace: ALL
           notifiers:
             enabled: true
             label: grafana_notifiers
