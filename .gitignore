@@ -2,3 +2,4 @@
 **/*.env
 **/*.credentials
 **/kubeconfig
+**/.notifiers-secret.yaml

@@ -12,11 +12,9 @@ namespaces:
 	kubectl create namespace wioc02 || true
 	kubectl create namespace wiotemp1 || true
 
+.PHONY: secrets
 secrets:
-	kubectl create secret generic -n grafana grafana-credentials --from-env-file=./hack/grafana.env || true
-	kubectl create secret generic -n wioc02 wioc02 --from-env-file=./hack/wioC02.env || true
-	kubectl create secret generic -n wiotemp1 wiotemphu --from-env-file=./hack/wiotemp1.env || true
-	kubectl create secret generic -n externaldns external-dns --from-file=./hack/aws.credentials || true
+	kubectl kustomize | kubectl apply -f -
 
 iot: namespaces secrets
 	kubectl kustomize clusters/iot | kubectl apply -f -
