@@ -21,6 +21,7 @@ spec:
           datasources:
             enabled: true
             label: grafana_datasource
+            searchNamespace: ALL
           dashboards:
             enabled: true
             label: grafana_dashboard
@@ -28,6 +29,7 @@ spec:
           notifiers:
             enabled: true
             label: grafana_notifiers
+            searchNamespace: ALL
         service:
           annotations:
             external-dns.alpha.kubernetes.io/hostname: grafana.leetserve.com
