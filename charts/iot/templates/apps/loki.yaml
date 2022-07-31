@@ -14,8 +14,6 @@ spec:
     repoURL: https://grafana.github.io/helm-charts
     chart: loki-stack
     targetRevision: "2.6.5"
-    helm:
-      values: |-
   project: default
   syncPolicy:
     automated:
