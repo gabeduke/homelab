@@ -46,6 +46,16 @@ spec:
           - hosts:
             - grafana.leetserve.com
             secretName: grafana-tls
+        dashboards:
+          default:
+            loki-monitoring:
+              gnetId: 14055
+              revision: 5
+              datasource: Loki
+            loki:
+              gnetId: 15141
+              revision: 1
+              datasource: Loki
   project: default
   syncPolicy:
     automated:
