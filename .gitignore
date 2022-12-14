@@ -3,3 +3,4 @@
 **/*.credentials
 **/kubeconfig
 **/.notifiers-secret.yaml
+**/tmp/
