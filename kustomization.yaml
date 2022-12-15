@@ -17,6 +17,10 @@ secretGenerator:
   namespace: wiotemp1
   files:
   - ./secrets/wiotemp1.env
+- name: wikileet-api
+  namespace: wikileet-api
+  envs:
+  - ./secrets/wikileet-api.env
 - name: external-dns
   namespace: externaldns
   files:
