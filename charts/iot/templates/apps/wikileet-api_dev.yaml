@@ -32,7 +32,7 @@ spec:
           CFG_DATABASE_NAME: "develop"
       parameters:
       - name: image.tag
-        value: $ARGOCD_APP_SOURCE_TARGET_REVISION
+        value: $ARGOCD_APP_REVISION
   project: default
   syncPolicy:
     automated:
