@@ -12,22 +12,23 @@ spec:
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
     path: deploy/wikileet
-    targetRevision: HEAD
+    targetRevision: develop
     helm:
       releaseName: $ARGOCD_APP_NAME
-      image:
-        tag: $ARGOCD_APP_SOURCE_TARGET_REVISION
-      ingress:
-        annotations:
-          "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
-        hosts:
-        - host: dev.wikileet.leetserve.com
-        tls:
-        - secretName: wikileet-tls
+      parameters:
+        image:
+          tag: $ARGOCD_APP_SOURCE_TARGET_REVISION
+        ingress:
+          annotations:
+            "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
           hosts:
-            - dev.wikileet.leetserve.com
-      configmapValues:
-        CFG_DATABASE_NAME: "develop"
+          - host: dev.wikileet.leetserve.com
+          tls:
+          - secretName: wikileet-tls
+            hosts:
+              - dev.wikileet.leetserve.com
+        configmapValues:
+          CFG_DATABASE_NAME: "develop"
   project: default
   syncPolicy:
     automated:
