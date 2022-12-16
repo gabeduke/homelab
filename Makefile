@@ -10,6 +10,7 @@ namespaces:
 	kubectl create namespace grafana || true
 	kubectl create namespace externaldns || true
 	kubectl create namespace wikileet || true
+	kubectl create namespace wikileet-dev || true
 	kubectl create namespace wioc02 || true
 	kubectl create namespace wiotemp1 || true
 

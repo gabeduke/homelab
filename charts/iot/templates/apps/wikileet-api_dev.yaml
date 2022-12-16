@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: wikileet-api
+  name: wikileet-api-dev
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: wikileet
+    namespace: wikileet-dev
     server: {{ .Values.spec.destination.server }}
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
@@ -17,16 +17,15 @@ spec:
       releaseName: $ARGOCD_APP_NAME
       ingress:
         annotations:
-          "external-dns.alpha.kubernetes.io/hostname": "wikileet.leetserve.com"
+          "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
         hosts:
-        - host: wikileet.leetserve.com
+        - host: dev.wikileet.leetserve.com
         tls:
         - secretName: wikileet-tls
           hosts:
-            - wikileet.leetserve.com
+            - dev.wikileet.leetserve.com
       configmapValues:
-        CFG_DATABASE_NAME: "production"
-
+        CFG_DATABASE_NAME: "develop"
   project: default
   syncPolicy:
     automated:

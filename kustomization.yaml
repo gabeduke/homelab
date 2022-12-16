@@ -18,6 +18,10 @@ secretGenerator:
   files:
   - ./secrets/wiotemp1.env
 - name: wikileet-api
+  namespace: wikileet-dev
+  envs:
+  - ./secrets/wikileet-api.env
+- name: wikileet-api
   namespace: wikileet
   envs:
   - ./secrets/wikileet-api.env
