@@ -21,6 +21,9 @@ spec:
             "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
           hosts:
           - host: dev.wikileet.leetserve.com
+            paths:
+            - path: /
+              pathType: ImplementationSpecific
           tls:
           - secretName: wikileet-tls
             hosts:
