@@ -15,7 +15,7 @@ spec:
     targetRevision: HEAD
     helm:
       releaseName: $ARGOCD_APP_NAME
-      parameters:
+      values: |-
         image:
           tag: $ARGOCD_APP_SOURCE_TARGET_REVISION
         ingress:
