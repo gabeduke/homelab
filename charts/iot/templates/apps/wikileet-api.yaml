@@ -11,7 +11,7 @@ spec:
     server: {{ .Values.spec.destination.server }}
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
-    path: deploy/
+    path: deploy/wikileet
   project: default
   syncPolicy:
     automated:
