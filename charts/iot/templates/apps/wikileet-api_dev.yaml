@@ -12,9 +12,11 @@ spec:
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
     path: deploy/wikileet
-    targetRevision: main
+    targetRevision: v1.*
     helm:
       releaseName: $ARGOCD_APP_NAME
+      image:
+        tag: ${{ ARGOCD_APP_SOURCE_TARGET_REVISION }}
       ingress:
         annotations:
           "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
