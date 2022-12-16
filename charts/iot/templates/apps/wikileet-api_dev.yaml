@@ -16,8 +16,6 @@ spec:
     helm:
       releaseName: $ARGOCD_APP_NAME
       values: |-
-        image:
-          tag: $ARGOCD_APP_SOURCE_TARGET_REVISION
         ingress:
           annotations:
             "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
@@ -29,6 +27,9 @@ spec:
               - dev.wikileet.leetserve.com
         configmapValues:
           CFG_DATABASE_NAME: "develop"
+      parameters:
+      - name: image.tag
+        value: $ARGOCD_APP_SOURCE_TARGET_REVISION
   project: default
   syncPolicy:
     automated:
