@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
     path: deploy/wikileet
-    targetRevision: v1.*
+    targetRevision: main
     helm:
       releaseName: $ARGOCD_APP_NAME
       ingress:
