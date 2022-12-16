@@ -14,7 +14,7 @@ spec:
     path: deploy/wikileet
     targetRevision: HEAD
     helm:
-      releaseName: $ARGOCD_APP_NAME
+      releaseName: wikileet
       values: |-
         ingress:
           annotations:
