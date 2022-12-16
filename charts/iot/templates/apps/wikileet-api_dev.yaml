@@ -16,7 +16,7 @@ spec:
     helm:
       releaseName: $ARGOCD_APP_NAME
       image:
-        tag: ${{ ARGOCD_APP_SOURCE_TARGET_REVISION }}
+        tag: $ARGOCD_APP_SOURCE_TARGET_REVISION
       ingress:
         annotations:
           "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
