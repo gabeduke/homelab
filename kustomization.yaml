@@ -9,6 +9,10 @@ secretGenerator:
   namespace: grafana
   files:
   - ./secrets/.notifiers-secret.yaml
+- name: google-credentials
+  namespace: kube-system
+  envs:
+  - ./secrets/google.env
 - name: wioc02
   namespace: wioc02
   files:
