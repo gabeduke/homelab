@@ -51,22 +51,7 @@ spec:
                   name: google-credentials
                   key: nonce
             - name: WHITELIST
-              value: gabeduke@gmail.com,zepterfd@gmail.com
-#            - name: PROVIDERS_GOOGLE_CLIENT_ID
-#              valueFrom:
-#                secretKeyRef:
-#                  name: traefik-forward-auth-secrets
-#                  key: traefik-forward-auth-google-client-id
-#            - name: PROVIDERS_GOOGLE_CLIENT_SECRET
-#              valueFrom:
-#                secretKeyRef:
-#                  name: traefik-forward-auth-secrets
-#                  key: traefik-forward-auth-google-client-secret
-#            - name: SECRET
-#              valueFrom:
-#                secretKeyRef:
-#                  name: traefik-forward-auth-secrets
-#                  key: traefik-forward-auth-secret
+              value: gabeduke@gmail.com,zepterfd@gmail.com,rachellison214@gmail.com,antoniafd@gmail.com,john.k.duke@gmail.com,darienduke@gmail.com,jonathanvassar@gmail.com,oconn2sh@gmail.com,jodyksanchez@gmail.com,skipjody@gmail.com,Cocadukes1@gmail.com,gladysmduke@gmail.com,elise.duke45@gmail.com
 
 ---
 #
