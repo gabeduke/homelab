@@ -31,7 +31,7 @@ spec:
               protocol: TCP
           env:
             - name: DOMAIN
-              value: "api.wikileet.leetserve.com"
+              value: "leetserve.com"
             # INSECURE_COOKIE is required unless using https entrypoint
             - name: INSECURE_COOKIE
               value: "true"
