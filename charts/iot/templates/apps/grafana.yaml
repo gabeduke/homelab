@@ -17,6 +17,8 @@ spec:
       values: |-
         admin:
           existingSecret: grafana-credentials
+        rbac:
+          pspEnabled: false
         sidecar:
           datasources:
             enabled: true
