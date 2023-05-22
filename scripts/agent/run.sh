@@ -3,7 +3,8 @@
 set -u
 
 # NAME=worker1
-ADVERTISE_IP=192.168.86.53
+TOKEN="${1}"
+ADVERTISE_IP="${2}"
 
 # export K3S_NODE_NAME=${NAME}
 export K3S_URL=https://${ADVERTISE_IP}:6443

@@ -1,9 +1,14 @@
-CONTROL_PLANE_NODE=ubuntu@pi-master
-WORKER1=ubuntu@pi-agent1
-WORKER2=ubuntu@pi-agent2
+USER=gabeduke
+CONTROL_PLANE_NODE=$(USER)@pi-control.local
+WORKER1=$(USER)@pi-beta.local
+WORKER2=$(USER)@pi-charlie.local
 
 TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/node-token)
+CONTROL_IP = $(shell ssh $(CONTROL_PLANE_NODE) hostname --all-ip-addresses | awk '{print $$1}')
 KUBECONFIG = $(shell ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml)
+
+dummy:
+	@echo $(CONTROL_IP)
 
 namespaces:
 	kubectl create namespace argocd || true
@@ -32,21 +37,30 @@ uninstall:
 	ssh $(WORKER1) /usr/local/bin/k3s-agent-uninstall.sh
 	ssh $(WORKER2) /usr/local/bin/k3s-agent-uninstall.sh
 
-apply-cluster:
-	ssh $(CONTROL_PLANE_NODE) sh run.sh
-	ssh $(WORKER1) 'export TOKEN=$(TOKEN) && sh run.sh'
-	ssh $(WORKER2) 'export TOKEN=$(TOKEN) && sh run.sh'
+apply-cluster: sync
+	# ssh $(CONTROL_PLANE_NODE) sh run.sh
+	ssh $(WORKER1) sh run.sh $(TOKEN) $(CONTROL_IP)
+	ssh $(WORKER2) sh run.sh $(TOKEN) $(CONTROL_IP)
 
 get-kubeconfig:
-	@ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml
+	@scp $(CONTROL_PLANE_NODE):/etc/rancher/k3s/k3s.yaml .k3s.yaml
+	chown $(USER):$(USER) .k3s.yaml
 
 merge-kubeconfig:
 	cp ~/.kube/config ~/.kube/config.bak 
-	kubeconfig=~/.kube/config:kubeconfig kubectl config view --flatten > /tmp/config 
+	kubeconfig=~/.kube/config:.k3s.yaml kubectl config view --flatten > /tmp/config 
 	mv /tmp/config ~/.kube/config 
 
 sync:
-	scp scripts/control-plane/run.sh $(CONTROL_PLANE_NODE):/home/ubuntu/
-	scp scripts/control-plane/ip.sh $(CONTROL_PLANE_NODE):/home/ubuntu/
-	scp scripts/agent/run.sh $(WORKER1):/home/ubuntu/
-	scp scripts/agent/run.sh $(WORKER2):/home/ubuntu/
+	scp scripts/control-plane/run.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
+	scp scripts/control-plane/ip.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
+	scp scripts/setup.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
+	scp scripts/agent/run.sh $(WORKER1):/home/$(USER)/
+	scp scripts/setup.sh $(WORKER1):/home/$(USER)/
+	scp scripts/agent/run.sh $(WORKER2):/home/$(USER)/
+	scp scripts/setup.sh $(WORKER2):/home/$(USER)/
+
+setup: sync
+	ssh $(CONTROL_PLANE_NODE) sh setup.sh
+	ssh $(WORKER1) sh setup.sh
+	ssh $(WORKER2) sh setup.sh
