@@ -29,10 +29,10 @@ spec:
           credentials:
             accessKeyIDSecretRef:
               name: external-dns
-              key: aws_secret_access_key
+              key: aws_access_key_id
             secretAccessKeySecretRef:
               name: external-dns
-              key: aws_access_key_id
+              key: aws_secret_access_key
           region: us-east-1
           zoneType: public
         domainFilters:
