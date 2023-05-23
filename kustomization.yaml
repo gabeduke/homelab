@@ -35,8 +35,8 @@ secretGenerator:
   - ./secrets/wikileet-api.env
 - name: external-dns
   namespace: externaldns
-  files:
-  - ./secrets/aws.credentials
+  envs:
+  - ./secrets/external-dns.env
 generatorOptions:
   disableNameSuffixHash: true
 patches:

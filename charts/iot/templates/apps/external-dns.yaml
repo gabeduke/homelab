@@ -27,7 +27,12 @@ spec:
           - crd
         aws:
           credentials:
-            secretName: external-dns
+            accessKeyIDSecretRef:
+              name: external-dns
+              key: aws_secret_access_key
+            secretAccessKeySecretRef:
+              name: external-dns
+              key: aws_access_key_id
           region: us-east-1
           zoneType: public
         domainFilters:
