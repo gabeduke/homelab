@@ -6,8 +6,9 @@ resources:
 - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 - cert-manager.yaml
 - external-dns.yaml
-- grafana.yaml
+# - grafana.yaml
 - influxdb.yaml
 - minecraft.yaml
 - mosquitto.yaml
+- prom-stack.yaml
 - reap.yaml

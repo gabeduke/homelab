@@ -1,0 +1,101 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prom-stack
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: monitoring
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "46.4.1"
+    helm:
+      values: |-
+        prometheusOperator:
+          admissionWebhooks:
+            enabled: false
+        prometheus-node-exporter:
+          tolerations:
+          - key: "node-role.kubernetes.io/master"
+            operator: "Exists"
+            effect: "NoSchedule"
+          - key: "node-role.leetserve.com/mothership"
+            operator: "Exists"
+            effect: "NoSchedule"
+        installCRDs: false
+        grafana:
+          admin:
+            existingSecret: grafana-credentials
+          rbac:
+            pspEnabled: false
+          datasources:
+            enabled: true
+            label: grafana_datasource
+            searchNamespace: ALL
+            uid: prometheus
+            url: http://prom-stack-kube-prometheus-prometheus.monitoring.svc:9090
+          sidecar:
+            datasources:
+              enabled: true
+              label: grafana_datasource
+              searchNamespace: ALL
+              uid: prometheus
+              url: http://prom-stack-kube-prometheus-prometheus.monitoring.svc:9090
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              searchNamespace: ALL
+            notifiers:
+              enabled: true
+              label: grafana_notifiers
+              searchNamespace: ALL
+          service:
+            annotations:
+              external-dns.alpha.kubernetes.io/hostname: grafana.leetserve.com
+          ingress:
+            enabled: true
+            annotations:
+              kubernetes.io/ingress.class: traefik
+              ingress.kubernetes.io/ssl-redirect: "true"
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+            hosts:
+            - grafana.leetserve.com
+            - localhost
+            tls:
+            - hosts:
+              - grafana.leetserve.com
+              secretName: grafana-tls
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+              - name: 'default'
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
+          dashboards:
+            default:
+              loki-monitoring:
+                gnetId: 14055
+                revision: 5
+                datasource: Loki
+              loki:
+                gnetId: 15141
+                revision: 1
+                datasource: Loki
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - Replace=true

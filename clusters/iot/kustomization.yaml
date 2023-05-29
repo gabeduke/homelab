@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
 - namespace-argocd
+- namespace-cert-manager
 - namespace-kube-system
 - namespace-longhorn-system
-- namespace-cert-manager
-- namespace-grafana
+- namespace-monitoring
