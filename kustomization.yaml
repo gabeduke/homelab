@@ -16,7 +16,7 @@ secretGenerator:
 - name: minecraft-creds
   namespace: minecraft
   files:
-  - ./secrets/minecraft.env
+  - ./secrets/minecraft.credentials
 - name: wioc02
   namespace: wioc02
   files:

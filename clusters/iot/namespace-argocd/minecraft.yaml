@@ -43,7 +43,7 @@ spec:
             enabled: true
             port: 25575
             existingSecret: minecraft-creds
-            secretKey: rcon-password
+            secretKey: minecraft.credentials
             serviceType: ClusterIP
 
         persistence:

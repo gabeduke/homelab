@@ -1,1 +1,0 @@
-rcon-password=xxx
