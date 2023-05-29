@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboards
-  labels:
-    grafana_dashboard: "1"
-data:
-  dashboard-iot.json: |-
-    {{- .Files.Get "files/dashboard-iot.json" | nindent 4 }}

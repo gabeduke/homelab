@@ -1,17 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: apps
+  name: wioc02
   namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: argocd
+    namespace: wioc02
     server: https://kubernetes.default.svc
   source:
-    repoURL: https://github.com/gabeduke/homelab.git
-    path: charts/iot
+    repoURL: https://github.com/gabeduke/wioC02Logger
+    path: deploy/
   project: default
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

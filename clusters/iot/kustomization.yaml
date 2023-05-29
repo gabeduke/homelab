@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
 - namespace-argocd
 - namespace-kube-system
+- namespace-longhorn-system
+- namespace-cert-manager
+- namespace-grafana

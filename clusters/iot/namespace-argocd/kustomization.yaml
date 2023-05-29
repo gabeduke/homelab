@@ -4,4 +4,10 @@ kind: Kustomization
 namespace: argocd
 resources:
 - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-- apps.yaml
+- cert-manager.yaml
+- external-dns.yaml
+- grafana.yaml
+- influxdb.yaml
+- minecraft.yaml
+- mosquitto.yaml
+- reap.yaml

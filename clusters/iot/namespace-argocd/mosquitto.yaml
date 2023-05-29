@@ -6,7 +6,7 @@ metadata:
 spec:
   destination:
     namespace: mosquitto
-    server: {{ .Values.spec.destination.server }}
+    server: https://kubernetes.default.svc
   project: default
   source:
     chart: mosquitto

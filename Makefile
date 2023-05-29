@@ -2,6 +2,7 @@ USER=gabeduke
 CONTROL_PLANE_NODE=$(USER)@alphapi
 WORKER1=$(USER)@betapi
 WORKER2=$(USER)@charliepi
+WORKER3=$(USER)@mothership
 
 EXTRA_SANS=alphapi
 
@@ -21,6 +22,8 @@ namespaces:
 	kubectl create namespace wikileet-test || true
 	kubectl create namespace wioc02 || true
 	kubectl create namespace wiotemp1 || true
+	kubectl create namespace longhorn-system || true
+	kubectl create namespace minecraft || true
 
 .PHONY: secrets
 secrets:
@@ -41,6 +44,7 @@ uninstall:
 	ssh $(CONTROL_PLANE_NODE) /usr/local/bin/k3s-uninstall.sh
 	ssh $(WORKER1) /usr/local/bin/k3s-agent-uninstall.sh
 	ssh $(WORKER2) /usr/local/bin/k3s-agent-uninstall.sh
+	ssh -t $(WORKER3) /usr/local/bin/k3s-agent-uninstall.sh
 
 .PHONY: install-control-plane
 install-control-plane:
@@ -50,6 +54,7 @@ install-control-plane:
 install-agent:
 	ssh $(WORKER1) sh run.sh $(TOKEN) $(CONTROL_IP)
 	ssh $(WORKER2) sh run.sh $(TOKEN) $(CONTROL_IP)
+	ssh -t $(WORKER3) sh run.sh $(TOKEN) $(CONTROL_IP)
 
 .PHONY: apply-cluster
 apply-cluster: sync install-control-plane install-agent
@@ -74,6 +79,7 @@ sync:
 	scp scripts/setup.sh $(WORKER1):/home/$(USER)/
 	scp scripts/agent/run.sh $(WORKER2):/home/$(USER)/
 	scp scripts/setup.sh $(WORKER2):/home/$(USER)/
+	scp scripts/agent/run.sh $(WORKER3):/home/$(USER)/
 
 .PHONY: setup
 setup: sync

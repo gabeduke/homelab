@@ -8,7 +8,7 @@ metadata:
 spec:
   destination:
     namespace: wikileet
-    server: {{ .Values.spec.destination.server }}
+    server: https://kubernetes.default.svc
   source:
     repoURL: https://github.com/gabeduke/wikileet-api
     path: deploy/wikileet

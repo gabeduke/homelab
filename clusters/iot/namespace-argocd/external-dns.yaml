@@ -8,7 +8,7 @@ metadata:
 spec:
   destination:
     namespace: externaldns
-    server: {{ .Values.spec.destination.server }}
+    server: https://kubernetes.default.svc
   source:
     repoURL: https://charts.bitnami.com/bitnami
     chart: external-dns

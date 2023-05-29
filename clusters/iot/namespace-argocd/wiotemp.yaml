@@ -1,16 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: wioc02
+  name: wiotemp1
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: wioc02
-    server: {{ .Values.spec.destination.server }}
+    namespace: wiotemp1
+    server: https://kubernetes.default.svc
   source:
-    repoURL: https://github.com/gabeduke/wioC02Logger
+    repoURL: https://github.com/gabeduke/wio-temp-hu-logger
     path: deploy/
   project: default
   syncPolicy:

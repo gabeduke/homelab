@@ -1,17 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: wiotemp1
+  name: loki
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: wiotemp1
-    server: {{ .Values.spec.destination.server }}
+    namespace: grafana
+    # server: https://kubernetes.default.svc
+    server: https://kubernetes.default.svc
   source:
-    repoURL: https://github.com/gabeduke/wio-temp-hu-logger
-    path: deploy/
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki-stack
+    targetRevision: "2.6.5"
   project: default
   syncPolicy:
     automated:

@@ -1,0 +1,15 @@
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: longhorn-manager
+spec:
+  template:
+    spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.leetserve.com/mothership"
+        operator: "Exists"
+        effect: "NoSchedule"

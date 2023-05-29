@@ -8,7 +8,7 @@ metadata:
 spec:
   destination:
     namespace: influxdb
-    server: {{ .Values.spec.destination.server }}
+    server: https://kubernetes.default.svc
   source:
     repoURL: 'https://helm.influxdata.com/'
     targetRevision: "4.10.0"
