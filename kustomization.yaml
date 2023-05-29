@@ -13,6 +13,10 @@ secretGenerator:
   namespace: kube-system
   envs:
   - ./secrets/google.env
+- name: minecraft-creds
+  namespace: minecraft
+  files:
+  - ./secrets/minecraft.env
 - name: wioc02
   namespace: wioc02
   files:

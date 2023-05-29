@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minecraft
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: minecraft
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: "https://itzg.github.io/minecraft-server-charts/"
+    chart: minecraft
+    targetRevision: "4.7.4"
+    helm:
+      values: |-
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: 1
+          limits:
+            memory: 6Gi
+            cpu: 2
+        nodeSelector:
+          kubernetes.io/hostname: mothership
+        tolerations:
+          - key: "node-role.leetserve.com/mothership"
+            operator: "Exists"
+            effect: "NoSchedule"
+        livenessProbe:
+          initialDelaySeconds: 300
+        readinessProbe:
+          initialDelaySeconds: 300
+
+        minecraftServer:
+          eula: "true"
+          whitelist: deadful_grate
+          memory: 6144M
+          serviceType: LoadBalancer
+          motd: "Welcome to Casimir's LeetServe Minecraft Server!"
+          rcon:
+            enabled: true
+            port: 25575
+            existingSecret: minecraft-creds
+            secretKey: rcon-password
+            serviceType: ClusterIP
+
+        persistence:
+          storageClass: "longhorn"
+
+        serviceAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: minecraft.leetserve.com
+
+        mcbackup:
+          enabled: true
+          persistence:
+            storageClass: "longhorn"
+
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
