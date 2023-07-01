@@ -18,10 +18,10 @@ spec:
         resources:
           requests:
             memory: 4Gi
-            cpu: 1
+            cpu: 2
           limits:
             memory: 6Gi
-            cpu: 2
+            cpu: 3
         nodeSelector:
           kubernetes.io/hostname: mothership
         tolerations:
@@ -29,25 +29,28 @@ spec:
             operator: "Exists"
             effect: "NoSchedule"
         livenessProbe:
-          initialDelaySeconds: 300
+          initialDelaySeconds: 120
         readinessProbe:
-          initialDelaySeconds: 300
-
+          initialDelaySeconds: 120
         minecraftServer:
           eula: "true"
-          whitelist: deadful_grate
+          whitelist: false
+          ops: deadful_grate,3HandedKing,LogCabinCrew,3HandsKing3626
           memory: 6144M
           serviceType: LoadBalancer
+          overrideServerProperties: true
           motd: "Welcome to Casimir's LeetServe Minecraft Server!"
           rcon:
             enabled: true
             port: 25575
             existingSecret: minecraft-creds
-            secretKey: minecraft.credentials
-            serviceType: ClusterIP
+            secretKey: RCON_PASSWORD
+            serviceType: LoadBalancer
 
         persistence:
           storageClass: "longhorn"
+          dataDir:
+            enabled: true
 
         serviceAnnotations:
           external-dns.alpha.kubernetes.io/hostname: minecraft.leetserve.com
@@ -56,6 +59,8 @@ spec:
           enabled: true
           persistence:
             storageClass: "longhorn"
+            backupDir:
+              enabled: true
 
   project: default
   syncPolicy:

@@ -31,7 +31,7 @@ secrets:
 
 .PHONY: iot
 iot: namespaces secrets
-	kubectl kustomize clusters/iot | kubectl apply -f -
+	kubectl apply -k clusters/iot --server-side --force-conflicts
 
 .PHONY: argocd
 argocd:

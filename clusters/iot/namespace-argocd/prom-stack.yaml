@@ -15,6 +15,11 @@ spec:
     targetRevision: "46.4.1"
     helm:
       values: |-
+        kube-state-metrics:
+          image:
+            registry: docker.io
+            repository: dukeman/kube-state-metrics
+            tag: v2.9.2
         prometheusOperator:
           admissionWebhooks:
             enabled: false
@@ -32,6 +37,7 @@ spec:
             existingSecret: grafana-credentials
           rbac:
             pspEnabled: false
+          plugins: []
           datasources:
             enabled: true
             label: grafana_datasource
