@@ -7,6 +7,7 @@ resources:
 - cert-manager.yaml
 - external-dns.yaml
 # - grafana.yaml
+- telegraf.yaml
 - influxdb.yaml
 - minecraft.yaml
 - mosquitto.yaml

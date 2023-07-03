@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telegraf
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: influxdb
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: 'https://helm.influxdata.com/'
+    targetRevision: "1.8.28"
+    chart: telegraf
+    helm:
+      values: |-
+        envFromSecret: telegraf-env
+        config:
+          agent:
+            interval: "10s"
+            round_interval: "true"
+            metric_batch_size: "1000"
+            metric_buffer_limit: "10000"
+            collection_jitter: "0s"
+            flush_interval: "10s"
+            flush_jitter: "0s"
+            precision: ""
+            omit_hostname: "false"
+          outputs:
+            influxdb_v2:
+              urls: 
+                - "https://influxdb.leetserve.com"
+              token: "$INFLUX_TOKEN"
+              organization: "leetserve"
+              bucket: "home"
+          inputs:
+            mqtt_consumer:
+              servers: 
+                - "tcp://mqtt.leetserve.com:1883"
+              data_format: "value"
+              data_type: "float"
+          inputs:
+            mqtt_consumer:
+              topic_parsing:
+                topic: ""+/+/+"  # all topics with 7 segments"
+                tags: "queue/sensor_id/sensor_type"
+                measurement: "_/_/measurement"
+
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

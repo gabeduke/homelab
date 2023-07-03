@@ -1,6 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 secretGenerator:
+- name: telegraf-env
+  namespace: influxdb
+  envs:
+  - ./secrets/telegraf.env
+- name: influxdb-auth
+  namespace: influxdb
+  envs:
+  - ./secrets/influxdb.env
 - name: grafana-credentials
   namespace: monitoring
   envs:
@@ -9,6 +17,10 @@ secretGenerator:
   namespace: monitoring
   files:
   - ./secrets/.notifiers-secret.yaml
+- name: grafana-datasources
+  namespace: monitoring
+  files:
+  - ./secrets/grafana-datasources.yaml
 - name: google-credentials
   namespace: kube-system
   envs:
@@ -52,3 +64,11 @@ patches:
       namespace: monitoring
       labels:
         "grafana_notifiers": "true"
+- patch: |-
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: grafana-datasources
+      namespace: monitoring
+      labels:
+        grafana_datasource: "1"

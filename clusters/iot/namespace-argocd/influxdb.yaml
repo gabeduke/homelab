@@ -11,17 +11,33 @@ spec:
     server: https://kubernetes.default.svc
   source:
     repoURL: 'https://helm.influxdata.com/'
-    targetRevision: "4.10.0"
-    chart: influxdb
+    targetRevision: "2.1.1"
+    chart: influxdb2
     helm:
       values: |-
         image:
-          tag: 1.8.9
+          tag: 2.7.1-alpine
         persistence:
-          enabled: false
+          enabled: true
+          size: 5Gi
+          storageClass: longhorn
         env:
           - name: INFLUXDB_DB
-            value: telegraf
+            value: home
+        adminUser:
+          organization: leetserve
+          bucket: home
+          user: gabeduke
+          existingSecret: influxdb-auth
+        ingress:
+          enabled: true
+          tls: true
+          secretName: influxdb-tls
+          hostname: influxdb.leetserve.com
+          annotations:
+            kubernetes.io/ingress.class: traefik
+            ingress.kubernetes.io/ssl-redirect: "true"
+            cert-manager.io/cluster-issuer: letsencrypt-prod
   project: default
   syncPolicy:
     automated:
