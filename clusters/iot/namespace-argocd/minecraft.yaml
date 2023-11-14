@@ -15,6 +15,7 @@ spec:
     targetRevision: "4.7.4"
     helm:
       values: |-
+        replicaCount: 0
         resources:
           requests:
             memory: 4Gi

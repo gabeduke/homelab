@@ -20,7 +20,7 @@ secretGenerator:
 - name: grafana-datasources
   namespace: monitoring
   files:
-  - ./secrets/grafana-datasources.yaml
+  - ./secrets/grafana-datasources-secret.yaml
 - name: google-credentials
   namespace: kube-system
   envs:
@@ -29,6 +29,10 @@ secretGenerator:
   namespace: minecraft
   envs:
   - ./secrets/minecraft.env
+- name: reap-creds
+  namespace: reap
+  envs:
+  - ./secrets/reap.env
 - name: wioc02
   namespace: wioc02
   files:
