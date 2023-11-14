@@ -18,9 +18,7 @@ spec:
         image:
           tag: 2.7.1-alpine
         persistence:
-          enabled: true
-          size: 5Gi
-          storageClass: longhorn
+          enabled: false
         env:
           - name: INFLUXDB_DB
             value: home
