@@ -2,4 +2,4 @@
 
 set -u
 
-hostname --all-ip-addresses | aws '{print $1}'
+hostname --all-ip-addresses | awk '{print $1}'
