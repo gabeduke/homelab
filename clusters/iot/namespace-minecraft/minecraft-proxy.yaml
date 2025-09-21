@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-proxy
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-proxy
+  template:
+    metadata:
+      labels:
+        app: minecraft-proxy
+    spec:
+      containers:
+      - name: proxy
+        image: alpine/socat:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          socat TCP-LISTEN:25565,reuseaddr,fork TCP:192.168.1.70:25565 &
+          socat TCP-LISTEN:25575,reuseaddr,fork TCP:192.168.1.70:25575 &
+          wait
+        ports:
+        - containerPort: 25565
+          name: minecraft
+        - containerPort: 25575
+          name: rcon
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-external
+  namespace: minecraft
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: minecraft-external.leetserve.com
+spec:
+  type: LoadBalancer
+  selector:
+    app: minecraft-proxy
+  ports:
+  - name: minecraft
+    port: 25565
+    targetPort: 25565
+    protocol: TCP
+  - name: rcon
+    port: 25575
+    targetPort: 25575
+    protocol: TCP

@@ -12,15 +12,11 @@ spec:
   source:
     repoURL: https://charts.bitnami.com/bitnami
     chart: external-dns
-    targetRevision: "6.20.2"
+    targetRevision: "9.0.3"
     helm:
       values: |-
         crd:  
           create: true
-        image:
-          registry: docker.io
-          repository: dukeman/external-dns
-          tag: v0.13.2-crd-anno
         provider: aws
         sources:
           - ingress

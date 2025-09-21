@@ -53,6 +53,18 @@ secretGenerator:
   namespace: wikileet
   envs:
   - ./secrets/wikileet-api.env
+- name: longhorn
+  namespace: longhorn-system
+  envs:
+  - ./secrets/longhorn.env
+- name: cert-manager
+  namespace: cert-manager
+  envs:
+  - ./secrets/cert-manager.env
+- name: toolshed-secret
+  namespace: toolshed
+  envs:
+  - ./secrets/toolshed.env
 - name: external-dns
   namespace: externaldns
   envs:

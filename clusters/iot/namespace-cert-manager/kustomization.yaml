@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: cert-manager
 
 resources:
+- letsencrypt-aws-prod.yaml
 - letsencrypt-prod.yaml
 - letsencrypt-staging.yaml
 - selfsigned.yaml

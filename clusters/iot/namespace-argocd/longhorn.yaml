@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: longhorn-system
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: 'https://charts.longhorn.io'
+    targetRevision: "1.6.2"
+    chart: longhorn
+    helm:
+      values: |-
+        ## The preUpgradeChecker should be disabled on bootstrap and then enabled after the initial install
+        # preUpgradeChecker:
+        #   jobEnabled: false
+        defaultSettings:
+          taintToleration: node-role.kubernetes.io/master=true:NoSchedule
+        global:
+          tolerations:
+            - key: node-role.kubernetes.io/master
+              operator: Exists
+              effect: "NoSchedule"
+            - key: "node-role.leetserve.com/mothership"
+              operator: "Exists"
+              effect: "NoSchedule"
+        longhornManager:
+          tolerations:
+            - key: "node-role.kubernetes.io/master"
+              operator: "Exists"
+              effect: "NoSchedule"
+            - key: "node-role.leetserve.com/mothership"
+              operator: "Exists"
+              effect: "NoSchedule"
+        longhornUI:
+          tolerations:
+            - key: "node-role.kubernetes.io/master"
+              operator: "Exists"
+              effect: "NoSchedule"
+            - key: "node-role.leetserve.com/mothership"
+              operator: "Exists"
+              effect: "NoSchedule"
+        longhornDriver:
+          tolerations:
+            - key: "node-role.kubernetes.io/master"
+              operator: "Exists"
+              effect: "NoSchedule"
+            - key: "node-role.leetserve.com/mothership"
+              operator: "Exists"
+              effect: "NoSchedule"
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

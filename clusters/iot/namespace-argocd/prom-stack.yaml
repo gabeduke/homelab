@@ -22,7 +22,8 @@ spec:
             tag: v2.9.2
         prometheusOperator:
           admissionWebhooks:
-            enabled: false
+            certManager:
+              enabled: true
         prometheus-node-exporter:
           tolerations:
           - key: "node-role.kubernetes.io/master"
