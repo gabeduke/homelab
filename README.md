@@ -1,8 +1,18 @@
 # homelab
 
-cluster definitions
+Infrastructure as code for home network, Kubernetes cluster, and devices.
 
-## Bootstrap
+## Repository Structure
+
+- **`clusters/`** - Kubernetes cluster definitions (K3s + GitOps)
+- **`devices/`** - Non-cluster devices (RetroPie, Home Assistant, etc.)
+- **`secrets/`** - Secret files for Kustomize (not tracked in git)
+- **`scripts/`** - Cluster provisioning and setup scripts
+- **`CLAUDE.md`** - AI assistant guidance for this repository
+
+## Kubernetes Cluster
+
+### Bootstrap
 
 ```bash
 flux bootstrap git \

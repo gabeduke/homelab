@@ -1,0 +1,42 @@
+# ROMs - too large and copyright issues
+# The roms/ directory contains ROM collections for local use only
+# These are NOT committed to git
+roms/
+
+# ROM file extensions
+*.nes
+*.snes
+*.smc
+*.sfc
+*.n64
+*.z64
+*.gba
+*.gbc
+*.gb
+*.iso
+*.bin
+*.cue
+*.chd
+*.zip
+
+# BIOS files - copyright issues
+bios/
+*.bios
+
+# Save states and save files - personal progress
+saves/
+*.srm
+*.state
+*.state*
+*.sav
+
+# Screenshots and videos - too large
+screenshots/
+videos/
+*.png
+*.jpg
+*.mp4
+
+# Temporary files
+*.tmp
+*.log
