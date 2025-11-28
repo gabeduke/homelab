@@ -7,13 +7,74 @@ metadata:
   - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
-    namespace: grafana
+    namespace: monitoring
     # server: https://kubernetes.default.svc
     server: https://kubernetes.default.svc
   source:
     repoURL: https://grafana.github.io/helm-charts
     chart: loki-stack
     targetRevision: "2.6.5"
+    helm:
+      values: |-
+        # Disable promtail (we can add it later if needed)
+        promtail:
+          enabled: false
+        # Disable PodSecurityPolicy (deprecated/removed in K8s 1.25+)
+        podSecurityPolicy:
+          enabled: false
+        loki:
+          # Use single binary mode for lower resource usage
+          singleBinary:
+            replicas: 1
+            persistence:
+              enabled: true
+              storageClassName: longhorn
+              size: 2Gi  # Start small, can increase if needed
+              accessModes:
+                - ReadWriteOnce
+          # Resource limits for Raspberry Pi
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          config:
+            # Reduced retention for experimentation (3 days instead of 7)
+            limits_config:
+              retention_period: 72h  # 3 days for experimentation
+              ingestion_rate_mb: 4  # Limit ingestion rate
+              ingestion_burst_size_mb: 6
+            storage_config:
+              filesystem:
+                chunks_directory: /loki/chunks
+                rules_directory: /loki/rules
+              retention_deletes_enabled: true
+              retention_period: 72h  # 3 days
+            # Optimize for low-resource environment
+            compactor:
+              working_directory: /loki/compactor
+              compaction_interval: 10m  # Less frequent compaction
+              retention_enabled: true
+              retention_delete_delay: 2h
+              retention_delete_worker_count: 150
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              kubernetes.io/ingress.class: traefik
+              ingress.kubernetes.io/ssl-redirect: "true"
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+              traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
+            hosts:
+              - host: loki.leetserve.com
+                paths:
+                  - /
+            tls:
+              - secretName: loki-tls
+                hosts:
+                  - loki.leetserve.com
   project: default
   syncPolicy:
     automated:

@@ -5,7 +5,11 @@ set -e
 
 RETROPIE_HOST="retropie.local"
 RETROPIE_USER="pi"
+# First try the repo directory, then fall back to ~/Downloads
 ROM_COLLECTION_DIR="$(cd "$(dirname "$0")/.." && pwd)/roms/proper1g1r-collection/ROMs"
+if [ ! -d "$ROM_COLLECTION_DIR" ] || [ -z "$(ls -A "$ROM_COLLECTION_DIR" 2>/dev/null)" ]; then
+    ROM_COLLECTION_DIR="$HOME/Downloads/proper1g1r-collection/ROMs"
+fi
 
 # System mappings: retropie system -> zip name
 get_zip_for_system() {
@@ -76,8 +80,13 @@ else
     }
 fi
 
+# Flatten directory structure - move all ROMs to temp root
+# This prevents nested directories like "Nintendo - Super Nintendo Entertainment System/"
+find "$TEMP_DIR" -type f -exec mv {} "$TEMP_DIR/" \; 2>/dev/null || true
+find "$TEMP_DIR" -mindepth 1 -type d -exec rm -rf {} \; 2>/dev/null || true
+
 # Count extracted files
-ROM_COUNT=$(find "$TEMP_DIR" -type f | wc -l | tr -d ' ')
+ROM_COUNT=$(find "$TEMP_DIR" -maxdepth 1 -type f | wc -l | tr -d ' ')
 
 if [ "$ROM_COUNT" -eq 0 ]; then
     echo "No ROMs extracted!"
@@ -90,9 +99,9 @@ echo ""
 # Create system directory on RetroPie
 ssh "${RETROPIE_USER}@${RETROPIE_HOST}" "mkdir -p ~/RetroPie/roms/${SYSTEM}"
 
-# Upload the ROMs
+# Upload the ROMs (only files, not directories)
 echo "Uploading to RetroPie..."
-scp -r "$TEMP_DIR"/* "${RETROPIE_USER}@${RETROPIE_HOST}:~/RetroPie/roms/${SYSTEM}/"
+find "$TEMP_DIR" -maxdepth 1 -type f -exec scp {} "${RETROPIE_USER}@${RETROPIE_HOST}:~/RetroPie/roms/${SYSTEM}/" \;
 
 echo ""
 echo "Upload complete! Uploaded $ROM_COUNT ROM(s) to ${SYSTEM}"

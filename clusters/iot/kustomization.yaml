@@ -6,5 +6,5 @@ resources:
 - namespace-cert-manager
 - namespace-kube-system
 - namespace-minecraft
-# - namespace-longhorn-system
+- namespace-longhorn-system
 - namespace-monitoring

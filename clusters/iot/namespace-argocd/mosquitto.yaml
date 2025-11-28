@@ -20,6 +20,20 @@ spec:
             enabled: true
             accessMode: ReadWriteOnce
             size: 1Gi
+        config:
+          mosquitto.conf: |
+            per_listener_settings false
+            listener 1883
+            allow_anonymous true
+            persistence true
+            persistence_location /mosquitto/data
+            autosave_interval 1800
+            # Message retention limits
+            max_queued_messages 1000
+            max_inflight_messages 20
+            max_queued_bytes 100MB
+            # Expire messages after 7 days if not consumed
+            message_expiry_interval 604800
         service:
           main:
             type:

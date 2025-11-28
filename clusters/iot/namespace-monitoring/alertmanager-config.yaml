@@ -1,0 +1,151 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: default
+  namespace: monitoring
+spec:
+  route:
+    receiver: 'default'
+    groupBy: ['alertname', 'cluster', 'service']
+    groupWait: 10s
+    groupInterval: 10s
+    repeatInterval: 12h
+    routes:
+      # System/info alerts - silence watchdog and info inhibitor FIRST (before other routes)
+      # These must come first to prevent them from matching other routes
+      - matchers:
+          - name: alertname
+            value: Watchdog
+            matchType: "="
+        receiver: 'null'
+        continue: false
+      - matchers:
+          - name: alertname
+            value: InfoInhibitor
+            matchType: "="
+        receiver: 'null'
+        continue: false
+      # K3s-specific alerts - silence these (k3s doesn't have separate controller-manager, scheduler, proxy)
+      - matchers:
+          - name: alertname
+            value: KubeControllerManagerDown
+            matchType: "="
+        receiver: 'null'
+        continue: false
+      - matchers:
+          - name: alertname
+            value: KubeSchedulerDown
+            matchType: "="
+        receiver: 'null'
+        continue: false
+      - matchers:
+          - name: alertname
+            value: KubeProxyDown
+            matchType: "="
+        receiver: 'null'
+        continue: false
+      # Critical alerts - fire immediately (but only if not already matched above)
+      - matchers:
+          - name: severity
+            value: critical
+            matchType: "="
+        receiver: 'critical'
+        continue: false
+        groupWait: 0s
+        repeatInterval: 1h
+      # Warning alerts - group and wait
+      - matchers:
+          - name: severity
+            value: warning
+            matchType: "="
+        receiver: 'default'
+        groupWait: 30s
+        repeatInterval: 6h
+      # Node-related alerts - high priority
+      - matchers:
+          - name: alertname
+            value: NodeDown|NodeNotReady|KubeNodeNotReady|KubeletDown
+            matchType: "=~"
+        receiver: 'default'
+        groupWait: 0s
+        repeatInterval: 1h
+      # Pod-related alerts
+      - matchers:
+          - name: alertname
+            value: KubePodCrashLooping|KubePodNotReady
+            matchType: "=~"
+        receiver: 'default'
+        groupWait: 30s
+        repeatInterval: 2h
+      # Resource pressure alerts
+      - matchers:
+          - name: alertname
+            value: KubeCPUOvercommit|KubeMemoryOvercommit|KubeDiskPressure
+            matchType: "=~"
+        receiver: 'default'
+        groupWait: 1m
+        repeatInterval: 6h
+  receivers:
+    - name: 'null'
+      # Null receiver - silences alerts (no notifications sent)
+      # Used for k3s-specific false positives
+    - name: 'default'
+      # Email notifications
+      emailConfigs:
+        - to: 'gabeduke@gmail.com'
+          from: 'alertmanager@leetserve.com'
+          smarthost: 'smtp.gmail.com:587'
+          authUsername: 'gabeduke@gmail.com'
+          authPassword:
+            key: smtp_password
+            name: alertmanager-notifiers
+          headers:
+            - key: 'Subject'
+              value: 'Alert: {{ .GroupLabels.alertname }}'
+          html: |
+            <h2>Alert Details</h2>
+            <table>
+              <tr><td><strong>Alert Name:</strong></td><td>{{ .GroupLabels.alertname }}</td></tr>
+              <tr><td><strong>Severity:</strong></td><td>{{ .GroupLabels.severity }}</td></tr>
+              <tr><td><strong>Namespace:</strong></td><td>{{ .GroupLabels.namespace }}</td></tr>
+            </table>
+            <h3>Description</h3>
+            <p>{{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+            <h3>All Alerts in Group</h3>
+            <ul>
+            {{ range .Alerts }}
+              <li><strong>{{ .Labels.alertname }}</strong>: {{ .Annotations.summary }}</li>
+            {{ end }}
+            </ul>
+          sendResolved: true
+    
+    - name: 'critical'
+      # Critical alerts - use same email but with immediate delivery
+      emailConfigs:
+        - to: 'gabeduke@gmail.com'
+          from: 'alertmanager@leetserve.com'
+          smarthost: 'smtp.gmail.com:587'
+          authUsername: 'gabeduke@gmail.com'
+          authPassword:
+            key: smtp_password
+            name: alertmanager-notifiers
+          headers:
+            - key: 'Subject'
+              value: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+          html: |
+            <h2 style="color: red;">🚨 CRITICAL ALERT</h2>
+            <table>
+              <tr><td><strong>Alert Name:</strong></td><td>{{ .GroupLabels.alertname }}</td></tr>
+              <tr><td><strong>Severity:</strong></td><td>{{ .GroupLabels.severity }}</td></tr>
+              <tr><td><strong>Namespace:</strong></td><td>{{ .GroupLabels.namespace }}</td></tr>
+            </table>
+            <h3>Description</h3>
+            <p>{{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+            <h3>All Alerts in Group</h3>
+            <ul>
+            {{ range .Alerts }}
+              <li><strong>{{ .Labels.alertname }}</strong>: {{ .Annotations.summary }}</li>
+            {{ end }}
+            </ul>
+          sendResolved: true
+

@@ -20,8 +20,8 @@ spec:
         args:
         - -c
         - |
-          socat TCP-LISTEN:25565,reuseaddr,fork TCP:192.168.1.70:25565 &
-          socat TCP-LISTEN:25575,reuseaddr,fork TCP:192.168.1.70:25575 &
+          socat TCP-LISTEN:25565,reuseaddr,fork TCP:192.168.1.103:25565 &
+          socat TCP-LISTEN:25575,reuseaddr,fork TCP:192.168.1.103:25575 &
           wait
         ports:
         - containerPort: 25565

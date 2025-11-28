@@ -4,12 +4,35 @@ kind: Kustomization
 namespace: argocd
 resources:
 - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-# - grafana.yaml
+- argocd-ingress.yaml
 # - minecraft.yaml
 - cert-manager.yaml
 - external-dns.yaml
 - influxdb.yaml
 - longhorn.yaml
+# - loki.yaml
 - mosquitto.yaml
 - prom-stack.yaml
 - reap.yaml
+patches:
+- target:
+    kind: ConfigMap
+    name: argocd-cmd-params-cm
+  patch: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-cmd-params-cm
+    data:
+      server.insecure: "true"
+- target:
+    kind: ConfigMap
+    name: argocd-cm
+  patch: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-cm
+    data:
+      admin.enabled: "true"
+      policy.default: "role:readonly"

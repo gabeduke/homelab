@@ -10,30 +10,49 @@ spec:
     namespace: externaldns
     server: https://kubernetes.default.svc
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
     chart: external-dns
-    targetRevision: "9.0.3"
+    targetRevision: "1.19.0"
     helm:
       values: |-
-        crd:  
-          create: true
-        provider: aws
+        # Official external-dns chart configuration
+        # Provider configuration
+        provider:
+          name: aws
+        # Sources to monitor for DNS entries
         sources:
           - ingress
           - crd
           - service
-        aws:
-          credentials:
-            accessKeyIDSecretRef:
-              name: external-dns
-              key: aws_access_key_id
-            secretAccessKeySecretRef:
-              name: external-dns
-              key: aws_secret_access_key
-          region: us-east-1
-          zoneType: public
+        # Domain filters - limit to our domain
         domainFilters:
           - leetserve.com
+        # Policy for DNS record synchronization
+        policy: upsert-only
+        # Log level (info to reduce IDNA warning noise)
+        logLevel: info
+        # AWS credentials via environment variables from secret
+        env:
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: external-dns
+                key: aws_access_key_id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: external-dns
+                key: aws_secret_access_key
+        # Resource limits for external-dns (lightweight service)
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
+          limits:
+            memory: 128Mi
+            cpu: 150m
   project: default
   syncPolicy:
     automated:

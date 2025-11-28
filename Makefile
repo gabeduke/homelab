@@ -11,6 +11,8 @@ TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/n
 CONTROL_IP = $(shell ssh $(CONTROL_PLANE_NODE) hostname --all-ip-addresses | awk '{print $$1}')
 KUBECONFIG = $(shell ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml)
 
+ARGOCD_PASSWORD = $(shell kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+
 dummy:
 	@echo $(CONTROL_IP)
 
@@ -41,9 +43,9 @@ iot: namespaces secrets
 
 .PHONY: argocd
 argocd:
-	@echo http://localhost:8080
-	kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-	kubectl port-forward svc/argocd-server -n argocd 8080:443
+	@echo http://argocd.leetserve.com
+	@echo "Username: admin"
+	@echo "Password: $(ARGOCD_PASSWORD)"
 
 .PHONY: uninstall
 uninstall:
@@ -65,7 +67,7 @@ install-agent:
 	# ssh -t $(WORKER4) sh run.sh $(TOKEN) $(CONTROL_IP)
 
 .PHONY: apply-cluster
-apply-cluster: sync install-control-plane install-agent
+apply-cluster: sync setup install-control-plane install-agent
 
 .PHONY: get-kubeconfig
 get-kubeconfig:
@@ -100,7 +102,7 @@ setup: sync
 
 .PHONY: patch
 patch:
-	@$(MAKE) -j patch-control-plane patch-agent1 patch-agent2 patch-agent4
+	@$(MAKE) -j patch-control-plane patch-agent1 patch-agent2
 
 patch-control-plane:
 	ssh $(CONTROL_PLANE_NODE) sudo apt-get update && sudo apt-get upgrade -y

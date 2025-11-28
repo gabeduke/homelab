@@ -69,6 +69,10 @@ secretGenerator:
   namespace: externaldns
   envs:
   - ./secrets/external-dns.env
+- name: alertmanager-notifiers
+  namespace: monitoring
+  envs:
+  - ./secrets/alertmanager-notifiers.env
 generatorOptions:
   disableNameSuffixHash: true
 patches:

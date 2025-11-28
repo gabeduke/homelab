@@ -17,8 +17,13 @@ spec:
       releaseName: wikileet-dev
       values: |-
         ingress:
+          ingressClassName: traefik
           annotations:
             "external-dns.alpha.kubernetes.io/hostname": "dev.wikileet.leetserve.com"
+            kubernetes.io/ingress.class: traefik
+            ingress.kubernetes.io/ssl-redirect: "true"
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+            traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
           host: dev.wikileet.leetserve.com
           tls:
           - secretName: wikileet-tls

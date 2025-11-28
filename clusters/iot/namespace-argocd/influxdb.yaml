@@ -18,7 +18,15 @@ spec:
         image:
           tag: 2.7.1-alpine
         persistence:
-          enabled: false
+          enabled: false  # Idle service, not causing issues
+        # Resource limits for InfluxDB (idle service, keep minimal)
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
+          limits:
+            memory: 256Mi
+            cpu: 200m
         env:
           - name: INFLUXDB_DB
             value: home
@@ -29,6 +37,7 @@ spec:
           existingSecret: influxdb-auth
         ingress:
           enabled: true
+          ingressClassName: traefik
           tls: true
           secretName: influxdb-tls
           hostname: influxdb.leetserve.com
@@ -36,6 +45,7 @@ spec:
             kubernetes.io/ingress.class: traefik
             ingress.kubernetes.io/ssl-redirect: "true"
             cert-manager.io/cluster-issuer: letsencrypt-aws-prod
+            traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
   project: default
   syncPolicy:
     automated:
