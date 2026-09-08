@@ -9,6 +9,12 @@
 **/*-secret.yaml
 **/tmp/
 
+# Session handoff scratchpad. Deliberately untracked -- it is working state, not
+# a versioned artifact, and it was generating a commit per session. Durable
+# findings belong in docs/ or CLAUDE.md, which ARE tracked.
+# Last tracked version: `git show dc7e4e0:STATE.md`
+STATE.md
+
 # macOS finder metadata
 .DS_Store
 **/.DS_Store
