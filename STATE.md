@@ -1,22 +1,29 @@
 # Homelab — session state
 
-**Last updated:** 2026-09-08 (session 3, post-`make iot`) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
+**Last updated:** 2026-09-08 (session 3 — COMPLETE, pushed) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
 
 ---
 
-## TL;DR
+## TL;DR — session complete, everything committed and pushed
 
-**Off-network access is restored.** The cause was one stale taint on `alphapi`,
-not the router. `svclb-traefik` now runs on all three nodes, alphapi serves
-:80/:443, and the public path works end to end.
+**Off-network access restored**, **15/15 certificates green** (was 10 failing),
+**Prometheus recovered** from a 2772-restart crashloop, and `make iot` now has a
+diff + explicit-approval gate.
 
-Certificates: **10 failing → 7 failing** (8 of 15 healthy). Four more are one
-`kubectl annotate` away but are **blocked by the permission classifier** (below).
+Branch `main` is **in sync with `origin/main`** at `3dc66bd`. Working tree clean.
 
-Priorities recorded from the user this session: **control plane first** — DNS
-management, central ingress, and off-network access to quickly-prototyped apps
-behind ingress auth. Monitoring second (only if it fits Pi constraints).
-Stateful/Longhorn last. **SSO was a spike and is not a priority.**
+> **History was rewritten before pushing.** GitHub secret scanning blocked the
+> push on a *placeholder* Slack webhook (`T00000000/B00000000/XXXX…` — Slack's own
+> documentation example, in a `# Format:` comment, no real credential). It was
+> sanitized to `<WORKSPACE_ID>/<CHANNEL_ID>/<TOKEN>`, which required amending the
+> commit that introduced it. **Two SHAs changed:** `8e5a49e → ccf36df` and
+> `88b3a62 → 3dc66bd`. Verified the only content difference was that single line.
+> If any other clone or worktree of this repo exists, it needs a fresh pull.
+
+Priorities recorded from the user: **control plane first** — DNS management,
+central ingress, and off-network access to quickly-prototyped apps behind ingress
+auth. Monitoring second (only if it fits Pi constraints). Stateful/Longhorn last.
+**SSO was a spike and is not a priority.**
 
 ---
 
