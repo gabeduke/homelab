@@ -122,14 +122,15 @@ uninstall:
 	done
 
 .PHONY: install-control-plane
+# bash, not sh: /bin/sh is dash on Ubuntu and these scripts use `set -o pipefail`.
 install-control-plane:
-	ssh $(CONTROL_PLANE_NODE) sh run.sh $(EXTRA_SANS)
+	ssh $(CONTROL_PLANE_NODE) bash run.sh $(EXTRA_SANS)
 
 .PHONY: install-agent
 install-agent:
 	@for n in $(WORKERS); do \
 		echo "==> installing k3s agent on $$n"; \
-		ssh $$n sh run.sh '$(TOKEN)' '$(CONTROL_IP)' '$(EXTERNAL_IP)' || exit $$?; \
+		ssh $$n bash run.sh '$(TOKEN)' '$(CONTROL_IP)' '$(EXTERNAL_IP)' || exit $$?; \
 	done
 
 .PHONY: apply-cluster

@@ -11,14 +11,17 @@ Findings are tagged `S6-n` and cross-referenced from `STATE.md`.
 ```
 01-makefile-and-docs      ── DONE, verified (0ee2d6e)
 02-nfs-and-setup-scripts  ── DONE, verified on all 3 nodes (0a2bf31)
-03-k3s-config-migration   ── independent, touches control plane (restart)
+03-k3s-config-migration   ── DONE, verified 2026-09-08
 04-cert-manager-upgrade   ── BLOCKS 05
 05-k3s-136-upgrade        ── requires 04
 06-ubuntu-lts-upgrade     ── do after 05; workers first, alphapi last
+07-dns-endpoints-namespace ── independent, low risk, docs+manifests only
 ```
 
-**01 and 02 are done.** Everything remaining is high risk and mutates live
-cluster or node state — there is no cheap next step. 03 is the next in order.
+**01 and 02 are done.** Of what remains, 03-06 are high risk and mutate live
+cluster or node state; 03 is next in that order. **07 is the one cheap item** —
+additive manifests plus a namespace, safe because external-dns runs
+`policy: upsert-only`. It can be done at any time, independently.
 
 **04 must precede 05.** cert-manager 1.14.5 does not support Kubernetes 1.36
 (see 04 for the verified support matrix). Upgrading k3s first would run the
@@ -38,5 +41,9 @@ were reachable with an empty agent.
 
 ## Prior-session context
 
-`STATE.md` holds the running history. `docs/tls-http01-outage.md` documents the
-session-3 TLS outage, which plan 03 argues was probably caused by the bug it fixes.
+`STATE.md` holds the running history (untracked — see `CLAUDE.md`).
+`docs/tls-http01-outage.md` documents the session-3 TLS outage. Plan 03
+originally argued that outage was probably caused by the bug it fixes; that is
+**wrong** and plan 03's *Outcome* section explains why — the k3s serving cert
+accumulates SANs and never drops them, so the dropped `alphapi` SAN kept being
+served.

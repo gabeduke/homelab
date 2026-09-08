@@ -4,6 +4,11 @@
 **Cluster impact:** one k3s restart · **Needs SSH:** yes
 **Blocks:** nothing · **Blocked by:** nothing (but do 01 first, it is free)
 
+> **STATUS: DONE — executed and verified 2026-09-08 (session 7).**
+> See *Outcome* at the bottom. Two claims in this plan were **wrong** and are
+> corrected there: the SAN loss caused no outage, and the fix does not prune
+> stale SANs.
+
 This is the most consequential finding of the review and the one most likely to
 have already caused an outage.
 
@@ -47,21 +52,23 @@ This is almost certainly how the cluster reached v1.35.5 while
 `system-upgrade-controller` has never been installed (plan 05 — the namespace is
 empty and the `Plan` CRD does not exist).
 
-### Confirm before fixing
+### Confirm before fixing — DONE, both mechanisms confirmed
 
-Not verified live — SSH was unavailable during the review.
+Verified 2026-09-08 from `~/log/ip-cron.log`. The bug fired **once**, on
+2026-04-25 05:00:02, and the log records it verbatim:
 
-```bash
-ssh gabeduke@alphapi 'crontab -l'                    # expect the @hourly ip.sh line
-ssh gabeduke@alphapi 'tail -20 ~/log/ips.log'        # how often has the IP changed?
-ssh gabeduke@alphapi 'tail -50 ~/log/ip-cron.log'    # look for installer output
-ssh gabeduke@alphapi 'ls -la /var/lib/rancher/k3s/server/tls/dynamic-cert.json'
-sudo k3s certificate check 2>/dev/null || \
-  ssh gabeduke@alphapi "echo | openssl s_client -connect 127.0.0.1:6443 2>/dev/null | openssl x509 -noout -text | grep -A2 'Subject Alternative Name'"
+```
+Sat Apr 25 05:00:02 EDT 2026: IP has changed to 96.228.35.135
++ export INSTALL_K3S_EXEC=... --tls-san=96.228.35.135,192.168.1.84,   <- trailing comma
++ curl -sfL https://get.k3s.io | sh -
+[INFO]  Using v1.34.6+k3s1 as release
+[INFO]  systemd: Creating service file /etc/systemd/system/k3s.service
+[INFO]  systemd: Starting k3s
 ```
 
-That last command is the decisive one: **if `alphapi` is missing from the SAN
-list, the bug has already fired.**
+Both mechanisms are real: `${1}` expanded empty, and the installer pulled
+whatever `stable` resolved to. **But see *Outcome* — the consequence was not
+what this plan predicted.**
 
 ---
 
@@ -332,3 +339,71 @@ re-issue the serving certificate instead of re-running the installer.
 run.sh now pins INSTALL_K3S_VERSION to the installed version, so a re-run can
 never change the k3s version; upgrades belong to system-upgrade-controller.
 ```
+
+
+---
+
+## Outcome — executed 2026-09-08 (session 7)
+
+Migration completed. `main` state verified identical to the pre-migration
+baseline: 3 nodes Ready v1.35.5+k3s1, certs 15/15 True, 5 ArgoCD apps
+Synced/Healthy, `longhorn` still the sole default StorageClass, only the
+known-bad `plant-shop-0` non-Running.
+
+### Confirmed working
+
+The decisive evidence is k3s's own `k3s.io/node-args` node annotation, which
+shows how it parsed the merged config after the restart:
+
+```
+["server","--write-kubeconfig-mode","0644",
+ "--node-taint","node-role.kubernetes.io/control-plane=true:NoSchedule",
+ "--advertise-address","192.168.1.84",
+ "--tls-san","alphapi","--tls-san","192.168.1.84",    <- config.yaml
+ "--tls-san","96.228.35.135",                          <- drop-in, via tls-san+
+ "--disable","local-storage","--node-external-ip","96.228.35.135"]
+```
+
+`tls-san+` **appends** rather than replaces, and the emptied `ExecStart` no
+longer overrides it. That is the whole design, confirmed live.
+
+### Correction 1 — the SAN loss caused no outage
+
+This plan claimed that dropping `alphapi` from `--tls-san` meant "anything
+reaching the API server by name then fails TLS verification." **It did not.**
+`k3s-serving` (created 2024-05-28) caches SAN entries and only ever accumulates
+them, so `alphapi` kept being served from the cached cert. Direct proof: before
+the migration the cert carried five dead public IPs — `100.7.128.194`,
+`108.4.2.184`, `108.4.69.4`, `173.53.89.213`, `98.117.72.161` — present in no
+config anywhere.
+
+**So the session-3 TLS outage was almost certainly not this bug.** `README.md`
+said otherwise and has been corrected. The real damage was Correction 2's
+silent, undrained k3s install.
+
+### Correction 2 — deleting the secret does not prune
+
+`ip.sh` deletes `k3s-serving` and `dynamic-cert.json`, and the first draft of
+this work claimed that pruned stale SANs. It does not: k3s re-seeds the listener
+secret from the on-disk `serving-kube-apiserver.crt` (still dated 2026-04-25
+after two restarts), so the regenerated cert came back with all 16 entries.
+Pruning would additionally require deleting `serving-kube-apiserver.{crt,key}`,
+which is a bigger blast radius than a lease change warrants. The comment in
+`ip.sh` now says this correctly.
+
+Worth keeping: this accumulation is a *safety* property. It is precisely why the
+2026-04-25 reinstall did not take the cluster off the network.
+
+### Correction 3 — `sh` cannot run these scripts
+
+The new scripts use `set -euo pipefail`. `/bin/sh` on these nodes is **dash**,
+which rejects `set -o pipefail` outright, and `make install-control-plane` /
+`install-agent` both invoked `sh run.sh`. Both now use `bash`. This would have
+failed on the first line of the migration.
+
+### Not done
+
+`--node-external-ip` on the **agents** is still a CLI flag set at join time and
+is never refreshed — only alphapi runs the cron, so all three nodes advertise
+whatever public IP was current when they joined. Documented in
+`scripts/agent/run.sh`; harmless on a single-homed network.
