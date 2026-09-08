@@ -1,50 +1,44 @@
 # Homelab — session state
 
-**Last updated:** 2026-09-08 (session 6) · **Branch:** `main` · **Cluster:** `alphapi`, k3s v1.35.5+k3s1
+**Last updated:** 2026-09-08 (session 7) · **Branch:** `provisioning-review-plans-01-02` · **Cluster:** `alphapi`, k3s v1.35.5+k3s1
 
 ---
 
 ## Read this first
 
-1. **There is uncommitted work in the tree.** Plan 02 is fully implemented and
-   verified on all three nodes but **not committed**. See *Uncommitted changes*
-   below before doing anything else.
+1. **The tree is clean.** Plans 01 and 02 are both committed on branch
+   `provisioning-review-plans-01-02` (3 commits, not yet pushed or merged).
+   Decide merge-vs-PR before starting new work.
 2. **Six implementation plans live in `docs/plans/`.** They are self-contained —
    context, exact diffs, verification, rollback. Do not re-derive them.
    `docs/plans/README.md` has the dependency order.
-3. **`docs/plans/02` is DONE.** Next cheapest is **plan 01**.
-4. **SSH to nodes depends on the login keyring being unlocked.** It silently
-   locked mid-session once (`ssh-add -l` → "The agent has no identities").
-   Test with `ssh gabeduke@alphapi true` before any node work.
+3. **Plans 01 and 02 are DONE.** Everything left (03–06) is **high risk** and
+   touches live cluster or node state. There is no cheap one remaining.
+4. **SSH to nodes depends on the login keyring being unlocked.** `ssh-add -l`
+   still reports "The agent has no identities", but `ssh gabeduke@alphapi true`
+   succeeds — the on-disk key is being used directly, so an empty agent is
+   **not** by itself a blocker. Test the real thing, not `ssh-add -l`.
 
 ---
 
-## Uncommitted changes
+## Branch state
 
 ```
- M Makefile
- M STATE.md
- D scripts/ip.sh          (staged delete)
- M scripts/load-nfs-modules.sh
- M scripts/setup.sh
-?? docs/plans/            (6 plans + README, all untracked)
+provisioning-review-plans-01-02   (3 commits, unpushed)
+  0ee2d6e  Fix four Makefile bugs: remote patching, kubeconfig merge/fetch, node lists
+  0a2bf31  Fix false-success NFS module loading; de-duplicate and gate setup scripts
+  a7c0eb1  Add session-6 provisioning review plans and update STATE.md
 ```
 
-This is **plan 02, complete and verified**, plus the plan documents. Net
-**+97 / −330** lines in the scripts. Nothing here is half-finished.
-
-`main` is the default branch, so a commit should branch first. Suggested message
-is at the bottom of `docs/plans/02-nfs-and-setup-scripts.md`.
-
----
+Branched off `main` at `9a7df68`. Working tree clean. Nothing pushed.
 
 ## Active work — the six plans
 
 | Plan | Covers | Risk | Status |
 |---|---|---|---|
-| `01-makefile-and-docs` | `make patch` broken, kubeconfig targets, node lists, stale taint doc | low | **next** |
+| `01-makefile-and-docs` | `make patch` broken, kubeconfig targets, node lists, stale taint doc | low | **DONE, verified** |
 | `02-nfs-and-setup-scripts` | sudo modprobe, dedupe, dead file, reboot gate | low | **DONE, verified** |
-| `03-k3s-config-migration` | IP cron silently reinstalls k3s | **high** | pending |
+| `03-k3s-config-migration` | IP cron silently reinstalls k3s | **high** | **next** |
 | `04-cert-manager-upgrade` | 1.14.5 → 1.21.x | **high** | pending — **gates 05** |
 | `05-k3s-136-upgrade` | wire up system-upgrade-controller, 1.35→1.36 | **high** | pending |
 | `06-ubuntu-lts-upgrade` | both workers on an EOL Ubuntu | **high** | pending |
@@ -110,6 +104,29 @@ not remove it — the later `cgroup_enable=memory` wins and `memory` is present 
 
 ---
 
+## What plan 01 actually found
+
+- **`make patch` had never patched anything.** Make runs each recipe line through
+  a *local* `/bin/sh`, so in `ssh $(NODE) sudo apt-get update && sudo apt-get
+  upgrade -y` the `&&` was parsed locally: `update` ran on the Pi, `upgrade -y`
+  ran on the Mac. Demonstrated directly — under the old shape the second command
+  reported hostname `dukemon`, under the quoted shape both report `betapi`.
+  The backlog cost is real: **alphapi has 111 pending package upgrades**,
+  betapi and charliepi 38 each. Relevant to plan 06.
+- **`make merge-kubeconfig` had never merged.** Verified with a probe kubeconfig
+  carrying a context name absent from `~/.kube/config`: the old lowercase
+  `kubeconfig=` form produced **0** references to it, the fixed `KUBECONFIG=`
+  form produced 5. It was harmless only because the flattened dump it wrote back
+  happened to be `~/.kube/config` itself.
+- **`make get-kubeconfig` produced an unusable file** — `chown gabeduke:gabeduke`
+  fails on macOS (the group is `staff`) and the fetched file pointed at
+  `127.0.0.1`. Now chmod 600 + server rewritten to `$(CONTROL_IP)`;
+  `KUBECONFIG=.k3s.yaml kubectl get nodes` succeeds from the Mac.
+- **`.k3s.yaml` was not gitignored.** It holds cluster-admin credentials and was
+  untracked-but-not-ignored, so any `git add -A` would have staged it. Added.
+
+---
+
 ## Cluster facts
 
 ```
@@ -130,8 +147,8 @@ pre-existing ext4 corruption, see backlog.
 
 - **Taint key.** Live taint is `node-role.kubernetes.io/control-plane`. The
   deprecated `master` key caused the session-1 off-network outage (`svclb-traefik`
-  tolerates `control-plane`, so it never scheduled). `CLAUDE.md` still documents
-  `master` — plan 01 fixes the doc.
+  tolerates `control-plane`, so it never scheduled). `CLAUDE.md` documented
+  `master` until plan 01; **fixed** in `0ee2d6e`.
 - **Two default StorageClasses.** Fixed in session 5 via `--disable local-storage`
   at the k3s level. A `kubectl patch` does **not** hold: `local-path` is owned by
   the k3s addon controller from a bundled manifest that is re-applied on upgrade,
@@ -142,6 +159,13 @@ pre-existing ext4 corruption, see backlog.
   is a *map of named volumes*) broke mosquitto rendering for a **year** —
   `selfHeal` could not recreate the PVC because the app could not render at all.
   Render locally before applying: `helm template ... -f values.yaml`.
+- **A makefile variable can hijack the recipe environment.** `Makefile` defined
+  `KUBECONFIG = $(shell ssh ... cat k3s.yaml)`. If a variable of that name is
+  present in make's environment at startup, make re-exports **its** value into
+  every recipe — so `KUBECONFIG=... make diff` would have pointed every kubectl
+  call in the file at the literal text of `k3s.yaml`. It was never referenced,
+  and is deleted in `0ee2d6e`. Do not reintroduce a makefile variable whose name
+  collides with a tool's environment variable.
 - **`make iot` has a review gate** (`make diff` → `make approve` → apply) added
   after a blind apply would have silently upgraded ArgoCD and dropped 11 people
   from the forward-auth whitelist. `make apply-iot` bypasses it. Do not use
@@ -180,7 +204,13 @@ pre-existing ext4 corruption, see backlog.
 
 ## History
 
-**Session 6 (this one)** — Reviewed `scripts/` + `Makefile`. Found 13 issues
+**Session 7 (this one)** — Committed plan 02 (verified in session 6) and the six
+plan documents, then implemented and verified plan 01. Branch
+`provisioning-review-plans-01-02`, 3 commits, unpushed. No cluster or node state
+was changed: every verification was read-only or repo-local. `make patch` was
+deliberately **not** run — see plan 06.
+
+**Session 6** — Reviewed `scripts/` + `Makefile`. Found 13 issues
 (`S6-1`…`S6-13`), researched each, wrote six plans, implemented and verified
 plan 02. No cluster or node state changed beyond re-running idempotent setup.
 

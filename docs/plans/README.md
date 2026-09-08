@@ -9,32 +9,32 @@ Findings are tagged `S6-n` and cross-referenced from `STATE.md`.
 ## Order and dependencies
 
 ```
-01-makefile-and-docs      ── independent, repo-only, zero cluster impact
-02-nfs-and-setup-scripts  ── DONE, verified on all 3 nodes (uncommitted)
+01-makefile-and-docs      ── DONE, verified (0ee2d6e)
+02-nfs-and-setup-scripts  ── DONE, verified on all 3 nodes (0a2bf31)
 03-k3s-config-migration   ── independent, touches control plane (restart)
 04-cert-manager-upgrade   ── BLOCKS 05
 05-k3s-136-upgrade        ── requires 04
 06-ubuntu-lts-upgrade     ── do after 05; workers first, alphapi last
 ```
 
-**Do 01 and 02 first.** They are cheap, carry no cluster risk, and 02 removes a
-false-success bug that is currently hiding the real state of NFS on the nodes.
+**01 and 02 are done.** Everything remaining is high risk and mutates live
+cluster or node state — there is no cheap next step. 03 is the next in order.
 
 **04 must precede 05.** cert-manager 1.14.5 does not support Kubernetes 1.36
 (see 04 for the verified support matrix). Upgrading k3s first would run the
 component that issues every TLS cert in the cluster outside its supported range.
 
-## Blocker for everything that touches a node
+## Before anything that touches a node
 
-SSH from the workstation is currently broken:
+Confirm SSH with the real thing, not the agent:
 
 ```
-$ ssh-add -l
-The agent has no identities
+$ ssh gabeduke@alphapi true && echo ok
 ```
 
-Run `ssh-add` (and confirm `ssh gabeduke@alphapi true` succeeds) before starting
-02, 03, 05, or 06. Plan 01 is the only one that works without it.
+`ssh-add -l` reporting "The agent has no identities" is **not** a blocker on its
+own — session 7 confirmed the on-disk key is used directly and all three nodes
+were reachable with an empty agent.
 
 ## Prior-session context
 
