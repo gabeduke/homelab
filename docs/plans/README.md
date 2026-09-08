@@ -1,10 +1,12 @@
-# Implementation plans — session 6 provisioning review
+# Implementation plans
 
 Each file is a self-contained task: context, exact changes, verification, and
 rollback. They are written to be executed one at a time, in separate sessions,
 without re-deriving the research.
 
-Findings are tagged `S6-n` and cross-referenced from `STATE.md`.
+Plans 01-06 came out of the session-6 provisioning review; their findings are
+tagged `S6-n`. Plan 07 was found separately, while decommissioning the stale
+gift-wiki deployment.
 
 ## Order and dependencies
 
@@ -18,10 +20,11 @@ Findings are tagged `S6-n` and cross-referenced from `STATE.md`.
 07-dns-endpoints-namespace ── independent, low risk, docs+manifests only
 ```
 
-**01 and 02 are done.** Of what remains, 03-06 are high risk and mutate live
-cluster or node state; 03 is next in that order. **07 is the one cheap item** —
-additive manifests plus a namespace, safe because external-dns runs
-`policy: upsert-only`. It can be done at any time, independently.
+**01, 02 and 03 are done.** Of what remains, 04-06 are high risk and mutate
+live cluster or node state; **04 is next in that order**. **07 is the one cheap
+item** — additive manifests plus a namespace, safe because external-dns runs
+`policy: upsert-only`. It can be done at any time, independently, and is a good
+choice if you want progress without a maintenance window.
 
 **04 must precede 05.** cert-manager 1.14.5 does not support Kubernetes 1.36
 (see 04 for the verified support matrix). Upgrading k3s first would run the
