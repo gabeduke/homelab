@@ -165,10 +165,45 @@ Prometheus/Grafana stack deployed via `prom-stack` ArgoCD app:
 - Credentials stored in `grafana-credentials` secret
 - Prometheus Operator CRDs in `namespace-monitoring/`
 
+## Gotchas that have already caused outages
+
+Each of these cost real downtime. They are not hypothetical.
+
+- **`make iot` has a review gate.** `make diff` → `make approve` → apply. It was
+  added after a blind apply would have silently upgraded ArgoCD and dropped 11
+  people from the forward-auth whitelist. `make apply-iot` bypasses the gate.
+  Do not use `make -j` with it — the gate must run before anything mutates.
+- **ArgoCD Helm values are not schema-checked before apply.** A bare
+  `persistence.enabled: true` in the k8s-at-home common chart (where
+  `persistence` is a *map of named volumes*) broke mosquitto rendering for a
+  **year**. `selfHeal` could not recover it, because the app could not render
+  at all. Render locally first: `helm template <app> ./<chart> -f values.yaml`.
+- **`longhorn` must stay the sole default StorageClass.** Two defaults were
+  fixed by disabling k3s local-storage at the k3s level. A `kubectl patch` does
+  **not** hold: `local-path` is owned by the k3s addon controller from a bundled
+  manifest re-applied on upgrade, and `longhorn`'s class is owned by
+  longhorn-manager from a ConfigMap. **Re-verify with `kubectl get sc` after any
+  k3s upgrade.**
+- **Never give a Makefile variable the same name as a tool's environment
+  variable.** The Makefile once defined `KUBECONFIG = $(shell ssh ... cat
+  k3s.yaml)`. When a variable of that name is in make's environment at startup,
+  make re-exports *its* value into every recipe — which would have pointed every
+  `kubectl` call in the file at the literal text of `k3s.yaml`.
+- **Quote remote commands in `ssh` recipes.** Make runs each recipe line through
+  a *local* `/bin/sh`, so in `ssh $(NODE) cmd-a && cmd-b` the `&&` is parsed
+  locally and `cmd-b` runs on the workstation. This is why `make patch` refreshed
+  package indexes for years without ever upgrading a node.
+
 ## Important Notes
 
-- The `.k3s.yaml` file is the downloaded kubeconfig (not tracked in git)
-- Makefile variables `USER`, `CONTROL_PLANE_NODE`, `WORKER*` define the cluster topology
+- The `.k3s.yaml` file is the downloaded kubeconfig — gitignored; it holds
+  cluster admin credentials and `make get-kubeconfig` writes it `chmod 600`
+- `STATE.md` is the session handoff scratchpad and is **deliberately untracked**.
+  Anything durable belongs in this file or `docs/`, not there
+- Makefile node topology is `CONTROL_PLANE_NODE` plus the `WORKER_HOSTS` list;
+  add or remove a node there and nowhere else — every target iterates it
 - Some resources in kustomization files are commented out (e.g., `# - namespace-kube-system`)
 - The `--server-side --force-conflicts` flags in `make iot` handle CRD ownership conflicts
 - Scripts in `scripts/` are synced to nodes via `make sync` before installation
+- `docs/plans/` holds self-contained implementation plans (context, exact diffs,
+  verification, rollback) with the dependency order in its README
