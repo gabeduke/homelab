@@ -1,6 +1,6 @@
 # Homelab — session state
 
-**Last updated:** 2026-09-07 (session 4) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
+**Last updated:** 2026-09-07 (session 4 — COMPLETE, pushed) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
 
 ---
 
@@ -10,6 +10,13 @@
 bug that broke Helm rendering for the whole Application. Fixed, applied, and
 verified: PVC recreated, broker `1/1 Running`, and the three dependent clients
 recovered **on their own** with no changes to their repos.
+
+Committed as **`b6a982c`** and pushed; `main` is in sync with `origin/main` and the
+working tree is clean. The push went through cleanly — no secret-scanning block and
+**no history rewrite**, unlike session 3.
+
+**No open blockers.** Nothing was left half-done and no permission denials were hit
+this session (session 3's `kubectl` classifier problems did not recur).
 
 Sessions 1–3 (TLS outage, off-network access, Prometheus, `make iot` review gate)
 are summarised under *Previously completed* below.
