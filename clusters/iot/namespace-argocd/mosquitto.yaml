@@ -27,10 +27,11 @@ spec:
             enabled: true
             accessMode: ReadWriteOnce
             size: 1Gi
-            # Pinned deliberately: the cluster currently has TWO default
-            # StorageClasses (local-path and longhorn), so an unset
-            # storageClass is resolved arbitrarily. local-path would also pin
-            # the broker's data to a single node.
+            # Pinned deliberately. This originally guarded against the
+            # cluster having TWO default StorageClasses; that was fixed in
+            # session 5 (k3s `--disable local-storage`), so longhorn is now
+            # the sole default. Kept explicit anyway: relying on whichever
+            # class happens to be default is what caused the ambiguity.
             storageClass: longhorn
         # NOTE: chart 4.4.0 generates mosquitto.conf itself, from auth /
         # persistence / perListenerSettings (see templates/configmap.yaml).

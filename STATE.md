@@ -1,25 +1,66 @@
 # Homelab — session state
 
-**Last updated:** 2026-09-07 (session 4 — COMPLETE, pushed) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
+**Last updated:** 2026-09-07 (session 5 — COMPLETE, pushed) · **Branch:** main · **Cluster:** `alphapi` (k3s v1.35.5)
 
 ---
 
-## TL;DR — mosquitto fixed; MQTT stack back after ~1 year dark
+## TL;DR — duplicate default StorageClasses fixed (session 5); mosquitto fixed (session 4)
 
 `mosquitto` had been **unsyncable since 2025-09-21** because of a one-line values
 bug that broke Helm rendering for the whole Application. Fixed, applied, and
 verified: PVC recreated, broker `1/1 Running`, and the three dependent clients
 recovered **on their own** with no changes to their repos.
 
-Committed as **`b6a982c`** and pushed; `main` is in sync with `origin/main` and the
-working tree is clean. The push went through cleanly — no secret-scanning block and
-**no history rewrite**, unlike session 3.
+**Session 5** removed the duplicate default StorageClass: `local-storage` is now
+disabled at the k3s level, so `longhorn` is the **sole default**. Details below.
+
+**Session 4** fixed mosquitto (`b6a982c`); `main` is in sync with `origin/main` and
+the working tree is clean. That push went through cleanly — no secret-scanning block
+and **no history rewrite**, unlike session 3.
 
 **No open blockers.** Nothing was left half-done and no permission denials were hit
 this session (session 3's `kubectl` classifier problems did not recur).
 
 Sessions 1–3 (TLS outage, off-network access, Prometheus, `make iot` review gate)
 are summarised under *Previously completed* below.
+
+---
+
+## The fix (session 5) — duplicate default StorageClasses
+
+`local-path` **and** `longhorn` were both annotated `is-default-class: true`, so
+Kubernetes chose arbitrarily for any PVC that omitted `storageClassName`. Long
+suspected as the source of the recurring stateful nondeterminism.
+
+**Why the plan recorded in session 4 would not have worked.** The obvious
+`kubectl patch sc local-path ...` does not hold — neither class is free-standing:
+
+| Class | Owned by | A kubectl patch would |
+|---|---|---|
+| `local-path` | k3s **Addon** `local-storage`, from the bundled `/var/lib/rancher/k3s/server/manifests/local-storage.yaml` (which hardcodes `is-default-class: "true"`) | survive restarts, then silently revert whenever a k3s upgrade ships a changed manifest — and this cluster auto-upgrades k3s |
+| `longhorn` | `longhorn-manager`, from ConfigMap `longhorn-storageclass`, already patched by this repo (`patch-storageclass-configmap.yaml:12`) | be reverted by longhorn-manager |
+
+**Which one loses was not close.** Every PVC in the cluster used longhorn
+(7 `longhorn` + 2 `longhorn-retain`); **zero** used `local-path`. `local-path`
+also cannot expand (`allowVolumeExpansion` unset) and is node-local, so anything
+landing on it loses its data when the pod reschedules.
+
+**What changed:** `--disable local-storage` added to k3s — in the systemd unit on
+alphapi (backed up alongside as `k3s.service.bak-*`) and in
+`scripts/control-plane/run.sh` so rebuilds keep it. k3s deleted the addon, the
+StorageClass, the `local-path-provisioner` Deployment, and the bundled manifest.
+
+**Verified:**
+- `longhorn` is the **sole default**; `local-path` SC, provisioner Deployment,
+  `local-storage` Addon and its manifest file are all gone.
+- End-to-end: a PVC created with **no** `storageClassName` was assigned
+  `longhorn` and bound in ~3s. Test PVC deleted; no orphaned PV.
+- Across the k3s restart, nodes/taints, certificates (15/15) and all 5 ArgoCD apps
+  are byte-identical to the pre-change snapshot. Running pods 74 → 73, exactly the
+  removed `local-path-provisioner`. mosquitto still `1/1 Running`, 0 restarts.
+
+**Reversible:** drop the flag from the unit + `run.sh` and restart k3s; k3s
+re-deploys local-path from its bundled manifest.
 
 ---
 
@@ -128,24 +169,17 @@ Nothing to restore; noted so nobody goes looking.
 
 ## Next steps
 
-1. **Two default StorageClasses** — `local-path` *and* `longhorn` are both marked
-   default, so Kubernetes picks arbitrarily. Still the most likely source of
-   recurring stateful nondeterminism. mosquitto is now pinned explicitly, but
-   that is a workaround, not the fix:
-   ```
-   kubectl patch sc local-path -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
-   ```
-2. **plant-shop** — ext4 corruption (`Resize inode not valid`, `RUN fsck MANUALLY`).
+1. **plant-shop** — ext4 corruption (`Resize inode not valid`, `RUN fsck MANUALLY`).
    Needs a manual `fsck` against `/dev/longhorn/pvc-dd559b8a-...` from a
    maintenance pod. Data risk — do backups first.
-3. **Repoint the three MQTT clients** off the public-IP hairpin (table above).
-4. **Longhorn disk imbalance** — betapi 125GB / charliepi 62GB / alphapi 31GB with
+2. **Repoint the three MQTT clients** off the public-IP hairpin (table above).
+3. **Longhorn disk imbalance** — betapi 125GB / charliepi 62GB / alphapi 31GB with
    `default-replica-count: 2` and strict anti-affinity. This combination already
    broke the Prometheus expansion and will do it again.
-5. **Cleanup** — delete `default/rwx-debug-1765122160` (leftover debug pod, 6583 restarts).
-6. **Bring 4 out-of-repo ingresses into this repo** (`eventchk`, `roomchk`,
+4. **Cleanup** — delete `default/rwx-debug-1765122160` (leftover debug pod, 6583 restarts).
+5. **Bring 4 out-of-repo ingresses into this repo** (`eventchk`, `roomchk`,
    `travel-happy`, `fretbook-dev`) — fixed live only in session 3.
-7. `patch-manager-tolerations.yaml:10` / `patch-ui-tolerations.yaml:10` still name
+6. `patch-manager-tolerations.yaml:10` / `patch-ui-tolerations.yaml:10` still name
    the deprecated `master` key. Harmless (both also list `control-plane` on line 13).
 
 ---
