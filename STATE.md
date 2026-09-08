@@ -6,9 +6,8 @@
 
 ## Read this first
 
-1. **The tree is clean and `main` is 4 commits ahead of `origin/main`.**
-   Plans 01 and 02 are merged. Nothing is pushed — decide whether to push
-   before starting new work.
+1. **The tree is clean and `main` is pushed.** Plans 01 and 02 are merged and
+   `origin/main` is up to date. Nothing is outstanding in the repo.
 2. **Six implementation plans live in `docs/plans/`.** They are self-contained —
    context, exact diffs, verification, rollback. Do not re-derive them.
    `docs/plans/README.md` has the dependency order.
@@ -23,9 +22,11 @@
 
 ## Branch state
 
-`main`, working tree clean, **4 commits ahead of `origin/main` (unpushed)**:
+`main`, working tree clean, **pushed** — `origin/main` is at `324685f`.
+Session 7 added five commits on top of `9a7df68`:
 
 ```
+324685f  Update STATE.md: plans 01-02 merged to main
 23223ca  Update STATE.md and plans README for session 7
 0ee2d6e  Fix four Makefile bugs: remote patching, kubeconfig merge/fetch, node lists
 0a2bf31  Fix false-success NFS module loading; de-duplicate and gate setup scripts
@@ -33,7 +34,6 @@ a7c0eb1  Add session-6 provisioning review plans and update STATE.md
 ```
 
 Merged fast-forward from `provisioning-review-plans-01-02` (branch deleted).
-`origin/main` is still at `9a7df68`.
 
 ## Active work — the six plans
 
@@ -209,7 +209,7 @@ pre-existing ext4 corruption, see backlog.
 
 **Session 7 (this one)** — Committed plan 02 (verified in session 6) and the six
 plan documents, then implemented and verified plan 01. Merged to `main`
-(fast-forward, 4 commits, **unpushed**). No cluster or node state was changed:
+(fast-forward) and pushed. No cluster or node state was changed:
 every verification was read-only or repo-local. `make patch` was deliberately
 **not** run — see plan 06.
 
