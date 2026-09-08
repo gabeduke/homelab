@@ -1,4 +1,4 @@
-  # These plans are adapted from work by Dax McDonald (https://github.com/daxmc99) and Hussein Galal (https://github.com/galal-hussein)
+# These plans are adapted from work by Dax McDonald (https://github.com/daxmc99) and Hussein Galal (https://github.com/galal-hussein)
 # in support of Rancher v2 managed k3s upgrades. See Also: https://rancher.com/docs/k3s/latest/en/upgrades/automated/
 ---
 apiVersion: upgrade.cattle.io/v1
@@ -18,9 +18,29 @@ spec:
       - {key: node-role.kubernetes.io/control-plane, operator: Exists}
   serviceAccountName: system-upgrade
   cordon: true
+  # REQUIRED, and the reason this Plan had never actually run. The job pod is
+  # pinned to the control-plane node by nodeAffinity, and the controller only
+  # adds a toleration for the cordon it sets itself
+  # (`node.kubernetes.io/unschedulable`). alphapi also carries
+  # `node-role.kubernetes.io/control-plane=true:NoSchedule` from
+  # scripts/control-plane/run.sh, which nothing here tolerated -- so the pod sat
+  # Pending forever with "1 node(s) had untolerated taint(s)".
+  #
+  # `operator: Exists` matches the `=true` value. Only the `control-plane` key is
+  # listed: `node-role.kubernetes.io/master` is NOT the live taint (see CLAUDE.md).
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
   upgrade:
     image: rancher/k3s-upgrade
-  channel: https://update.k3s.io/v1-release/channels/stable
+  # Pinned, not `channel: .../stable`. A channel makes every node upgrade the
+  # moment upstream promotes a release -- unattended, and with no repo change to
+  # review. Bump this line deliberately.
+  #
+  # The controller converts `+` to `-` for the image tag; verified that
+  # rancher/k3s-upgrade:v1.36.4-k3s1 exists and publishes linux/arm64.
+  version: v1.36.4+k3s1
 ---
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
@@ -30,7 +50,11 @@ metadata:
   labels:
     k3s-upgrade: agent
 spec:
-  concurrency: 2 # Batch size (roughly maps to maximum number of unschedulable nodes)
+  # 1, not 2. There are exactly two agents, and Longhorn runs two replicas
+  # with strict anti-affinity -- draining both workers at once can take out
+  # both replicas of a volume. Every running replica currently sits on
+  # alphapi + betapi, so betapi must never drain alongside another node.
+  concurrency: 1 # Batch size (roughly maps to maximum number of unschedulable nodes)
   nodeSelector:
     matchExpressions:
       - {key: k3s-upgrade, operator: Exists}
@@ -47,4 +71,10 @@ spec:
     skipWaitForDeleteTimeout: 60 # 1.18+ (honor pod disruption budgets up to 60 seconds per pod then moves on)
   upgrade:
     image: rancher/k3s-upgrade
-  channel: https://update.k3s.io/v1-release/channels/stable
+  # Pinned, not `channel: .../stable`. A channel makes every node upgrade the
+  # moment upstream promotes a release -- unattended, and with no repo change to
+  # review. Bump this line deliberately.
+  #
+  # The controller converts `+` to `-` for the image tag; verified that
+  # rancher/k3s-upgrade:v1.36.4-k3s1 exists and publishes linux/arm64.
+  version: v1.36.4+k3s1

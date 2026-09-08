@@ -300,3 +300,140 @@ Agent Plan concurrency 2 -> 1: there are exactly two agents, and Longhorn runs
 two replicas with strict anti-affinity, so draining both at once can take out
 both replicas of a volume.
 ```
+
+---
+
+## Outcome — executed 2026-09-08 (session 9)
+
+**All three nodes are on `v1.36.4+k3s1`.** containerd went `2.2.3-k3s1` →
+`2.3.4-k3s1.36` on every node. Post-upgrade state matches the pre-upgrade
+baseline: certs **15/15 True** with identical names/ready/secrets, 5 ArgoCD apps
+Synced/Healthy, all 74 pods Running/Completed, `longhorn` still the **sole**
+default StorageClass with **no `local-path`**, control-plane taint intact,
+`svclb-*` 3/3/3, all attached Longhorn volumes `healthy`.
+
+Timings: alphapi 09:59→10:08, betapi 10:10→11:00 (45 min of that was the two
+blockers below), charliepi 11:01→11:10.
+
+**The pre-flight was accurate.** Stable channel was still `v1.36.4+k3s1`;
+`v0.20.1` was still the newest non-prerelease controller and does ship `crd.yaml`
+separately with **0 CRDs** in the controller manifest; both
+`rancher/system-upgrade-controller:v0.20.1` and `rancher/k3s-upgrade:v1.36.4-k3s1`
+publish **linux/arm64**. Zero `gitRepo` volumes, zero Services with `externalIPs`.
+Applying `crd.yaml` by itself first avoided the documented
+`no matches for kind "Plan"` race — all 13 objects applied on the first attempt.
+
+### Correction 1 — "The Plans are already right" is WRONG. This is why it never ran.
+
+The `k3s-server` Plan had **no toleration for the control-plane taint.** The
+upgrade job pod is pinned to its target node by `nodeAffinity`, and the controller
+only adds a toleration for the cordon it sets itself
+(`node.kubernetes.io/unschedulable`). alphapi also carries
+`node-role.kubernetes.io/control-plane=true:NoSchedule`, which nothing tolerated,
+so the pod sat **Pending** with:
+
+```
+0/3 nodes are available: 1 node(s) had untolerated taint(s),
+2 node(s) didn't match Pod's node affinity/selector.
+```
+
+This is the **session-1 outage class again**. `Plan.spec.tolerations` exists and
+is *appended* to that default. The fix (now in the manifest) is:
+
+```yaml
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+```
+
+`operator: Exists` matches the `=true` value; only `control-plane` is listed
+because `master` is not the live taint. The pod then scheduled in 13s.
+**Recovery required deleting the stale Pending job** — the Plan hash does not
+include tolerations, so the controller will not recreate the job on its own.
+
+### Correction 2 — this cluster CANNOT be drained without intervention
+
+The plan's storage section worried about concurrency. The real problem is that
+**two PodDisruptionBudgets make the agent drain impossible**, and neither
+`drain.force: true` nor `skipWaitForDeleteTimeout: 60` defeats a PDB — `force`
+covers unmanaged pods, and `skipWaitForDeleteTimeout` only skips *waiting* on
+pods already terminating. Eviction against a PDB retries **forever**, until the
+job dies at `activeDeadlineSeconds: 900`.
+
+**a. `influxdb-influxdb2`** — a single-replica StatefulSet with a PDB of
+`minAvailable: 1`, so `currentHealthy == desiredHealthy == 1` and
+`disruptionsAllowed: 0` permanently. Its pod can **never** be evicted. It uses
+**`emptyDir`**, so its data is already ephemeral and `kubectl delete pod` moves it
+harmlessly (delete bypasses the eviction API). Do this *after* the node is
+cordoned so it lands elsewhere. **It will block every future drain.**
+
+**b. Longhorn's instance-manager PDB.** Longhorn's own log gives the rule:
+
+```
+removing betapi PDB is blocked: replica pvc-fc1353bc-...-r-57a22501
+has no pdb on another node
+```
+
+The Prometheus volume has `numberOfReplicas: 1` on betapi. Under
+`node-drain-policy: block-if-contains-last-replica`, **scaling Prometheus to 0 and
+detaching the volume is NOT sufficient** — confirmed empirically; Longhorn wants a
+copy *on another node*. What worked: set the policy to
+**`allow-if-replica-is-stopped`**, which permits the drain because the replica is
+`stopped`, while still blocking on *running* last replicas. Longhorn then logged
+"Removing instance-manager-... PDB" and the drain finished in ~60s. Reverted to
+`block-if-contains-last-replica` afterwards.
+
+charliepi hit the same PDB for a *different* and **self-resolving** reason —
+`some volumes are still attached InstanceEngines count 1 pvc-403d032b...-e-0`
+(mosquitto's engine was still there). Once the workload pods were evicted and the
+volume detached, Longhorn released it on its own. Do not confuse the two: the
+last-replica block never clears by itself; the attached-engine block does.
+
+### Correction 3 — deleting a failed upgrade Job wedges the Plan
+
+After the deadline failure, `kubectl delete job` left the Plan with
+`status.applying: ["betapi"]` and `Complete=False (JobFailed)`, waiting on a job
+that no longer existed. The controller emitted no further `SyncJob` and **betapi
+sat idle for 25 minutes even after being re-labelled.** Fix:
+
+```bash
+kubectl -n system-upgrade rollout restart deploy/system-upgrade-controller
+```
+
+A new job appeared within 10s. **Never delete a failed upgrade Job without
+restarting the controller afterwards.**
+
+### Correction 4 — the upgrade job kills its own pod, and that is normal
+
+SIGTERMing k3s takes containerd with it, so the job pod goes `Unknown` and the
+Job creates a second one. The retry hits `upgrade.sh`'s "Binary already been
+replaced" early exit and completes in under a minute. **Expect one `Unknown` pod
+per node**; force-delete them afterwards. Do not read it as a failure.
+
+### The upgrade only swaps the binary — verified from source
+
+`k3s-io/k3s-upgrade`, `scripts/upgrade.sh`: it finds the k3s pid, `cp`s the new
+binary over `/usr/local/bin/k3s`, and sends `SIGTERM` so the supervisor restarts
+it. It **never runs `install.sh`, never rewrites the systemd unit, and never
+touches `/etc/rancher/k3s`.** It also refuses to downgrade and refuses a target
+whose build date is older than the installed one. Confirmed after the upgrade:
+`disable: local-storage` still in `config.yaml`, `local-storage` absent from
+`/var/lib/rancher/k3s/server/manifests/`, `ExecStart` still flagless. **Plan 03's
+migration survives a minor upgrade.**
+
+### Notes for plan 06 — it drains too, so it hits all of this
+
+1. **Fix the two drain blockers first, or plan 06 stalls the same way.**
+   Give `influxdb` a real PVC (or drop its PDB — its `emptyDir` makes the PDB
+   meaningless), and give `pvc-fc1353bc` a second replica.
+2. Longhorn replica placement is effectively **2-node**: alphapi + betapi carry
+   4 running replicas each, **charliepi carries none**. Sequential upgrades are
+   the only thing preserving redundancy.
+3. Plan 03 migrated **only the control plane**. Both agents still carry
+   `--node-external-ip=...` in `ExecStart` and have no `config.yaml` at all.
+4. **SSH broke mid-session** (`communication with agent failed` →
+   `Permission denied (publickey)`). Workaround that works:
+   `ssh -o IdentityAgent=none gabeduke@<node>`.
+5. `activeDeadlineSeconds: 900` is the budget for prepare + drain + swap. Clear
+   drain blockers *before* labelling a node, or the job dies mid-flight.

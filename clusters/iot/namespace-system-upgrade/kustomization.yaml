@@ -3,5 +3,11 @@ kind: Kustomization
 namespace: system-upgrade
 
 resources:
-- https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml
+# Pinned deliberately. `latest` here means a `make iot` can silently change the
+# component that upgrades every node in the cluster.
+# CRD and controller are separate files in current releases -- the controller
+# manifest alone does not define `kind: Plan`, so applying it by itself installs
+# the controller and then fails on the Plans below.
+- https://github.com/rancher/system-upgrade-controller/releases/download/v0.20.1/crd.yaml
+- https://github.com/rancher/system-upgrade-controller/releases/download/v0.20.1/system-upgrade-controller.yaml
 - k3s.yaml

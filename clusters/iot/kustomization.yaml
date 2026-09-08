@@ -8,3 +8,4 @@ resources:
 - namespace-longhorn-system
 - namespace-minecraft
 - namespace-monitoring
+- namespace-system-upgrade

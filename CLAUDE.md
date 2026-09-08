@@ -151,6 +151,20 @@ tolerates `control-plane`, so it never scheduled on alphapi. Some manifests
 harmless, since both keys are tolerated, but do not copy that pattern into new
 manifests.
 
+**Anything pinned to alphapi by nodeAffinity needs this toleration explicitly.**
+The `k3s-server` upgrade Plan sat `Pending` forever without it -- the
+system-upgrade-controller adds a toleration only for the cordon it sets itself
+(`node.kubernetes.io/unschedulable`), not for the control-plane taint. See
+`docs/plans/05-k3s-136-upgrade.md` *Outcome*, Correction 1.
+
+**Draining a node here needs two PDBs cleared first**, or the eviction retries
+until the job's deadline kills it. `drain.force` and `skipWaitForDeleteTimeout`
+do **not** defeat a PDB. `influxdb-influxdb2` is a single-replica StatefulSet
+with `minAvailable: 1`, so its pod can never be evicted (it uses `emptyDir`, so
+`kubectl delete pod` is safe); and Longhorn refuses to release a node's
+instance-manager while it holds a volume's last replica -- detaching the volume
+is not enough. Full detail and the fixes are in plan 05's *Outcome*.
+
 ### External DNS
 Services use annotation `external-dns.alpha.kubernetes.io/hostname: <domain>` to automatically create DNS records (domain: leetserve.com).
 
