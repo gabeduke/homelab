@@ -1,22 +1,21 @@
 #!/bin/bash
 
-# cron entry (crontab -e)
-# @hourly /home/${USER}/ip.sh >> /var/log/ip-cron.log 2>&1
+# Configuration
+LOG_DIR="/home/gabeduke/log"
+IPS_LOG="${LOG_DIR}/ips.log"
+CRON_LOG="${LOG_DIR}/ip-cron.log"
+RUN_SCRIPT="/home/gabeduke/run.sh"
 
-#################### CHANGE THE FOLLOWING VARIABLES ####################
-LOG_FILE="/home/${USER}/log/ips.log"
-########################################################################
-
-mkdir -p "$(dirname "${LOG_FILE}")"
-touch "${LOG_FILE}"
+mkdir -p "${LOG_DIR}"
+touch "${IPS_LOG}"
 
 CURRENT_IPV4="$(dig +short myip.opendns.com @resolver1.opendns.com)"
-LAST_IPV4="$(tail -1 $LOG_FILE | awk -F, '{print $2}')"
+LAST_IPV4="$(tail -1 "${IPS_LOG}" | awk -F, '{print $2}')"
 
 if [ "$CURRENT_IPV4" = "$LAST_IPV4" ]; then
-    echo "IP has not changed ($CURRENT_IPV4)"
+    echo "$(date): IP has not changed ($CURRENT_IPV4)"
 else
-    echo "IP has changed: $CURRENT_IPV4"
-    echo "$(date),$CURRENT_IPV4" >> "$LOG_FILE"
-    sh run.sh
+    echo "$(date): IP has changed to $CURRENT_IPV4"
+    echo "$(date),$CURRENT_IPV4" >> "${IPS_LOG}"
+    sh "${RUN_SCRIPT}"
 fi

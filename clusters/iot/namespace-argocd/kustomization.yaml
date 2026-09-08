@@ -3,17 +3,21 @@ kind: Kustomization
 
 namespace: argocd
 resources:
-- https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# Pinned to a release tag, NOT "stable".
+# "stable" floats: every `make iot` pulled whatever upstream stable was that day,
+# silently drifting the cluster's ArgoCD version. Bump this deliberately.
+- https://raw.githubusercontent.com/argoproj/argo-cd/v3.2.1/manifests/install.yaml
 - argocd-ingress.yaml
 # - minecraft.yaml
 - cert-manager.yaml
 - external-dns.yaml
+# - gift-wiki.yaml
+# - gift-wiki-dev.yaml
 - influxdb.yaml
-- longhorn.yaml
 # - loki.yaml
 - mosquitto.yaml
 - prom-stack.yaml
-- reap.yaml
+# - reap.yaml
 patches:
 - target:
     kind: ConfigMap

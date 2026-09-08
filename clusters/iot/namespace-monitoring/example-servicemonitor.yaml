@@ -1,0 +1,77 @@
+---
+# Example ServiceMonitor for Prometheus
+# This is a template you can use to create ServiceMonitors for your applications
+#
+# To use this:
+# 1. Copy this file to your app's namespace directory or create it alongside your app config
+# 2. Update the metadata.name, metadata.namespace, and spec.selector.matchLabels
+# 3. Update the endpoints section to match your service's metrics endpoint
+# 4. Ensure your Service has the labels specified in spec.selector.matchLabels
+# 5. Add the ServiceMonitor to your kustomization.yaml if using Kustomize
+#
+# The default kube-prometheus-stack configuration selects ServiceMonitors from all namespaces
+# that have the label: release: prom-stack (or no label selector, depending on your setup)
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: my-app-metrics  # Change this to match your app name
+  namespace: my-app-namespace  # Change to your app's namespace
+  labels:
+    # These labels help identify the ServiceMonitor
+    app: my-app
+    # Optional: If your Prometheus has a serviceMonitorSelector, ensure labels match
+    # release: prom-stack  # Uncomment if your Prometheus selects by this label
+spec:
+  # Selector to match your Service
+  selector:
+    matchLabels:
+      app: my-app  # Must match labels on your Service
+      # You can add more labels here to be more specific
+      # component: metrics
+  
+  # Namespace selector - by default, ServiceMonitor only discovers services in its own namespace
+  # To discover services in other namespaces, use namespaceSelector:
+  # namespaceSelector:
+  #   matchNames:
+  #     - my-app-namespace
+  #     - another-namespace
+  
+  # Endpoints define which ports/paths to scrape
+  endpoints:
+    - port: metrics  # Name of the port in your Service (or use targetPort for pod port)
+      path: /metrics  # Path to metrics endpoint (default is /metrics)
+      interval: 30s  # Optional: scrape interval (defaults to Prometheus global interval)
+      scrapeTimeout: 10s  # Optional: scrape timeout
+      # scheme: http  # Optional: http or https (default: http)
+      
+      # If your metrics endpoint requires authentication:
+      # basicAuth:
+      #   username:
+      #     name: metrics-auth-secret
+      #     key: username
+      #   password:
+      #     name: metrics-auth-secret
+      #     key: password
+      
+      # If your metrics endpoint uses TLS:
+      # tlsConfig:
+      #   insecureSkipVerify: true  # Only for self-signed certs
+      #   # Or provide CA cert:
+      #   # ca:
+      #   #   secret:
+      #   #     name: metrics-ca-cert
+      #   #     key: ca.crt
+
+
+
+
+
+
+
+
+
+
+
+
+

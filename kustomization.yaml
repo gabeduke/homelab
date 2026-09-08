@@ -25,6 +25,10 @@ secretGenerator:
   namespace: kube-system
   envs:
   - ./secrets/google.env
+- name: facebook-credentials
+  namespace: kube-system
+  envs:
+  - ./secrets/facebook.env
 - name: minecraft-creds
   namespace: minecraft
   envs:
@@ -73,6 +77,18 @@ secretGenerator:
   namespace: monitoring
   envs:
   - ./secrets/alertmanager-notifiers.env
+- name: django-app-secrets
+  namespace: wikileet-dev
+  envs:
+  - ./secrets/gift-wiki-dev.env
+- name: django-app-secrets
+  namespace: wikileet
+  envs:
+  - ./secrets/gift-wiki.env
+- name: fretbook-secrets
+  namespace: fretbook-dev
+  envs:
+  - ./secrets/fretbook-dev.env
 generatorOptions:
   disableNameSuffixHash: true
 patches:

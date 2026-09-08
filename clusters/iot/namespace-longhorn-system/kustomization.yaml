@@ -3,15 +3,14 @@ kind: Kustomization
 namespace: longhorn-system
 
 resources:
-- https://raw.githubusercontent.com/longhorn/longhorn/v1.5.1/deploy/longhorn.yaml
+- https://raw.githubusercontent.com/longhorn/longhorn/v1.10.1/deploy/longhorn.yaml
+- longhorn-ingress.yaml
+- longhorn-settings.yaml
+- backup-target.yaml
+- recurring-backup.yaml
+- gift-wiki-storageclass.yaml
 
 patches:
-  - path: patch-manager-tolerations.yaml
-    target: 
-      kind: DaemonSet
-  - path: patch-driver-tolerations.yaml
-    target: 
-      kind: Deployment
-  - path: patch-ui-tolerations.yaml
-    target: 
-      kind: Deployment
+- path: patch-manager-tolerations.yaml
+- path: patch-ui-tolerations.yaml
+- path: patch-storageclass-configmap.yaml

@@ -5,6 +5,6 @@ resources:
 - namespace-argocd
 - namespace-cert-manager
 - namespace-kube-system
-- namespace-minecraft
 - namespace-longhorn-system
+- namespace-minecraft
 - namespace-monitoring

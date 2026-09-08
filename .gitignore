@@ -4,3 +4,7 @@
 **/kubeconfig
 **/*-secret.yaml
 **/tmp/
+
+# macOS finder metadata
+.DS_Store
+**/.DS_Store

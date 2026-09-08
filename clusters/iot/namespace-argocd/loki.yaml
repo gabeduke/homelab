@@ -65,7 +65,7 @@ spec:
             annotations:
               kubernetes.io/ingress.class: traefik
               ingress.kubernetes.io/ssl-redirect: "true"
-              cert-manager.io/cluster-issuer: letsencrypt-prod
+              cert-manager.io/cluster-issuer: letsencrypt-aws-prod
               traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
             hosts:
               - host: loki.leetserve.com

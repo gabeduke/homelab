@@ -1,0 +1,14 @@
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: taint-toleration
+  namespace: longhorn-system
+value: node-role.kubernetes.io/control-plane=true:NoSchedule
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: default-replica-count
+  namespace: longhorn-system
+value: '{"v1":"2","v2":"2"}'
+

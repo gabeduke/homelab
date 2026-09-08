@@ -3,8 +3,8 @@
 
 set -e
 
-RETROPIE_HOST="retropie.local"
-RETROPIE_USER="pi"
+RETROPIE_HOST="${RETROPIE_HOST:-retropie.local}"
+RETROPIE_USER="${RETROPIE_USER:-pi}"
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <package-name>"

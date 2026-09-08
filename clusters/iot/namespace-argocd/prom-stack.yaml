@@ -40,38 +40,71 @@ spec:
             limits:
               memory: 256Mi
               cpu: 500m
+        # Disable problematic default rules that are too expensive for home lab
+        # These apiserver rules use 30d lookback windows causing timeouts
+        defaultRules:
+          rules:
+            kubeApiserverAvailability: false  # Disable kube-apiserver-availability rules
+            kubeApiserverBurnrate: false     # Disable kube-apiserver-burnrate rules
         prometheus:
           prometheusSpec:
             retention: 7d  # Reduced from default 10d to save space
-            retentionSize: 5GiB  # Hard limit on disk usage (must end with B)
+            retentionSize: 6GiB  # Must stay well UNDER the volume size (10Gi) - it was
+                       # previously 5GiB on a 5Gi volume, i.e. 100%, so Prometheus
+                       # filled the disk before retention ever triggered and
+                       # crashlooped on 'no space left on device'.
             storageSpec:
               volumeClaimTemplate:
                 spec:
                   accessModes: ["ReadWriteOnce"]
                   resources:
                     requests:
-                      storage: 5Gi
+                      storage: 10Gi
             # Resource limits for Prometheus (critical for Raspberry Pi)
+            # Increased CPU request to reduce throttling that causes rule evaluation failures
+            # PrometheusRuleFailures and PrometheusMissingRuleEvaluations are often caused by CPU throttling
             resources:
               requests:
                 memory: 512Mi
-                cpu: 200m
+                cpu: 500m  # Increased from 200m to reduce CPU throttling on Raspberry Pi
               limits:
                 memory: 2Gi  # Prometheus can be memory-hungry, but cap it
-                cpu: 1000m
+                cpu: 1500m  # Increased from 1000m to allow more headroom for rule evaluation
+            # Rule evaluation configuration - optimized for home lab / small clusters
+            # Prevents PrometheusRuleFailures and PrometheusMissingRuleEvaluations alerts
+            evaluationInterval: 60s  # Increased from 30s to reduce evaluation pressure
+            # Reduce scrape load to help with rule evaluation performance
+            # Global scrape interval (default is 15s, increasing to 30s reduces load)
+            scrapeInterval: 30s
+            scrapeTimeout: 10s  # Timeout for scrapes (default is 10s)
+            # Note: Kubelet ServiceMonitor already has metric relabeling configured by the chart
+            # to drop high-cardinality container metrics (fs, cpu throttling, memory swap, etc.)
             # Alerting configuration
             alerting:
               alertmanagers:
                 - namespace: monitoring
                   name: prom-stack-kube-prometheus-alertmanager
                   port: http-web
+            # ServiceMonitor discovery configuration
+            # Allow Prometheus to discover ServiceMonitors from all namespaces
+            # By default, Prometheus only discovers ServiceMonitors in its own namespace
+            serviceMonitorNamespaceSelector: {}  # Empty selector matches all namespaces
+            # Allow Prometheus to discover ServiceMonitors without requiring release label
+            # By default, kube-prometheus-stack only selects ServiceMonitors with release: prom-stack
+            serviceMonitorSelector: {}  # Empty selector matches all ServiceMonitors
+            # Alternative: To select specific namespaces by label, use:
+            # serviceMonitorNamespaceSelector:
+            #   matchLabels:
+            #     monitoring: enabled
+            # Or to select specific namespaces by name, you would need to label the namespaces
+            # and use matchLabels, or use a different approach
           ingress:
             enabled: true
             ingressClassName: traefik
             annotations:
               kubernetes.io/ingress.class: traefik
               ingress.kubernetes.io/ssl-redirect: "true"
-              cert-manager.io/cluster-issuer: letsencrypt-prod
+              cert-manager.io/cluster-issuer: letsencrypt-aws-prod
               traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
             hosts:
               - prometheus.leetserve.com
@@ -88,7 +121,7 @@ spec:
             annotations:
               kubernetes.io/ingress.class: traefik
               ingress.kubernetes.io/ssl-redirect: "true"
-              cert-manager.io/cluster-issuer: letsencrypt-prod
+              cert-manager.io/cluster-issuer: letsencrypt-aws-prod
               traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
             hosts:
               - alertmanager.leetserve.com
@@ -120,7 +153,7 @@ spec:
             # This allows better secret management and configuration
         prometheus-node-exporter:
           tolerations:
-          - key: "node-role.kubernetes.io/master"
+          - key: "node-role.kubernetes.io/control-plane"
             operator: "Exists"
             effect: "NoSchedule"
           - key: "node-role.leetserve.com/mothership"
@@ -171,7 +204,7 @@ spec:
             annotations:
               kubernetes.io/ingress.class: traefik
               ingress.kubernetes.io/ssl-redirect: "true"
-              cert-manager.io/cluster-issuer: letsencrypt-prod
+              cert-manager.io/cluster-issuer: letsencrypt-aws-prod
               traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
             hosts:
             - grafana.leetserve.com

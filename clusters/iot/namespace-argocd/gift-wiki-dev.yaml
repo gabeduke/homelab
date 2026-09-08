@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gift-wiki-dev
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: wikileet-dev
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/gabeduke/django-gift-wiki
+    path: deploy/dev
+    targetRevision: develop
+  project: default
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+
