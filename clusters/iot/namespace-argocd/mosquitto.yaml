@@ -14,26 +14,30 @@ spec:
     targetRevision: 4.4.0
     helm:
       values: |-
+        # NOTE: `persistence` is a MAP of named volumes, each with its own
+        # `enabled` key. Do NOT add a top-level `persistence.enabled` — the
+        # chart does `range $index, $PVC := .Values.persistence`, so a bool at
+        # the top level breaks rendering for the whole Application with:
+        #   _pvc.tpl:7:19: executing "common.pvc" at <$PVC.enabled>:
+        #   can't evaluate field enabled in type interface {}
+        # That bug silently blocked every sync of this app from 2025-09-21
+        # until 2026-09-07, which is how the mosquitto-data PVC went missing.
         persistence:
-          enabled: true
           data:
             enabled: true
             accessMode: ReadWriteOnce
             size: 1Gi
-        config:
-          mosquitto.conf: |
-            per_listener_settings false
-            listener 1883
-            allow_anonymous true
-            persistence true
-            persistence_location /mosquitto/data
-            autosave_interval 1800
-            # Message retention limits
-            max_queued_messages 1000
-            max_inflight_messages 20
-            max_queued_bytes 100MB
-            # Expire messages after 7 days if not consumed
-            message_expiry_interval 604800
+            # Pinned deliberately: the cluster currently has TWO default
+            # StorageClasses (local-path and longhorn), so an unset
+            # storageClass is resolved arbitrarily. local-path would also pin
+            # the broker's data to a single node.
+            storageClass: longhorn
+        # NOTE: chart 4.4.0 generates mosquitto.conf itself, from auth /
+        # persistence / perListenerSettings (see templates/configmap.yaml).
+        # There is no top-level `config:` value — one was set here between
+        # 2025-11-28 and 2026-09-07 and was silently ignored the whole time.
+        # Custom conf requires overriding persistence."mosquitto-config" to
+        # point at a ConfigMap of your own.
         service:
           main:
             type:
