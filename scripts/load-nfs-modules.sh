@@ -1,179 +1,84 @@
 #!/bin/bash
+#
+# Load the NFS kernel modules Longhorn needs for RWX volumes, and make them
+# persist across reboots. Safe to re-run; safe to run on a node where the
+# modules are built into the kernel rather than loadable.
+#
+# Run directly on a node, or from the repo root via `make load-nfs-modules`.
+# `setup.sh` also calls this so the logic lives in exactly one place.
 
-# Script to load NFS kernel modules required for Longhorn RWX volumes
-# This should be run on each k3s node
-# Note: On Raspberry Pi, some modules may be built into the kernel
+set -uo pipefail
 
-set +e  # Don't exit on error for module loading
+# modprobe needs CAP_SYS_MODULE. We connect as an unprivileged user, so every
+# load must go through sudo -- without it modprobe fails with "Operation not
+# permitted" and the old version of this script reported a false success.
+MODULES="sunrpc lockd nfs nfsd"
 
-echo "========================================="
-echo "Loading NFS Kernel Modules for RWX"
-echo "========================================="
-echo ""
+# A module compiled into the kernel is reported by modinfo as "(builtin)".
+# It is present and working, it just cannot be loaded or unloaded.
+is_builtin() {
+    [ "$(modinfo -F filename "$1" 2>/dev/null)" = "(builtin)" ]
+}
 
-KERNEL_VERSION=$(uname -r)
-
-# Check if NFS is available in the kernel (built-in or module)
-check_nfs_available() {
-    # Check if NFS filesystem is supported (this is the most reliable check)
-    if grep -q " nfs " /proc/filesystems 2>/dev/null; then
-        return 0
-    fi
-    # Check if NFSv4 filesystem is supported
-    if grep -q " nfs4 " /proc/filesystems 2>/dev/null; then
-        return 0
-    fi
-    # Check if NFS modules exist
-    if find /lib/modules/"$KERNEL_VERSION" -name "nfs.ko*" -o -name "nfsd.ko*" 2>/dev/null | grep -q .; then
-        return 0
-    fi
+# Snapshot lsmod once and match against the string. Deliberately NOT
+# `lsmod | grep -q`: grep -q exits on first match, lsmod takes SIGPIPE, and
+# under `set -o pipefail` the pipeline returns 141 -- so an already-loaded
+# module was reported as freshly loaded, non-deterministically, depending on
+# whether lsmod finished writing before grep exited.
+LSMOD="$(lsmod)"
+is_loaded() {
+    case $'\n'"$LSMOD" in
+        *$'\n'"$1 "*) return 0 ;;
+    esac
     return 1
 }
 
-# Check if kernel module loading is restricted
-check_module_loading_restricted() {
-    # Check for kernel lockdown mode
-    if [ -f /sys/kernel/security/lockdown ] && grep -q "\[none\]" /sys/kernel/security/lockdown 2>/dev/null; then
-        return 1  # Not restricted
-    elif [ -f /sys/kernel/security/lockdown ] && grep -q "\[integrity\]\|\[confidentiality\]" /sys/kernel/security/lockdown 2>/dev/null; then
-        return 0  # Restricted
-    fi
-    return 1  # Assume not restricted if we can't determine
-}
+echo "==> Loading NFS kernel modules (Longhorn RWX)"
 
-# Load modules in dependency order: sunrpc -> lockd -> nfs -> nfsd
-MODULES=("sunrpc" "lockd" "nfs" "nfsd")
-LOADED_COUNT=0
-BUILTIN_COUNT=0
-
-for module in "${MODULES[@]}"; do
-    echo "Checking module: $module"
-    if lsmod | grep -q "^${module}"; then
-        echo "  ✓ $module is already loaded"
-        LOADED_COUNT=$((LOADED_COUNT + 1))
+# PERSIST collects only modules that are actually loaded AND loadable -- a
+# builtin does not belong in modules-load.d, and neither does one that failed:
+# either makes systemd-modules-load log a failure on every boot.
+missing=0
+PERSIST=""
+for module in $MODULES; do
+    if is_loaded "$module"; then
+        echo "    ok    $module (already loaded)"
+        PERSIST="${PERSIST}${module} "
+    elif is_builtin "$module"; then
+        echo "    ok    $module (built into kernel)"
+    elif sudo modprobe "$module"; then
+        echo "    ok    $module (loaded)"
+        PERSIST="${PERSIST}${module} "
     else
-        echo "  → Loading $module..."
-        # Capture actual error message
-        ERROR_MSG=$(modprobe "$module" 2>&1)
-        if [ $? -eq 0 ]; then
-            echo "  ✓ $module loaded successfully"
-            LOADED_COUNT=$((LOADED_COUNT + 1))
-        else
-            # Check if module is built into kernel
-            if echo "$ERROR_MSG" | grep -qi "built-in\|builtin"; then
-                echo "  ✓ $module is built into kernel (not a loadable module)"
-                BUILTIN_COUNT=$((BUILTIN_COUNT + 1))
-            elif [ ! -d "/lib/modules/$KERNEL_VERSION" ] || [ ! -f "/lib/modules/$KERNEL_VERSION/modules.dep" ]; then
-                echo "  ⚠ Failed to load $module: kernel modules directory missing"
-                echo "    Installing kernel headers for $KERNEL_VERSION..."
-                sudo apt-get -o DPkg::Lock::Timeout=60 update || echo "Warning: apt-get update failed"
-                sudo apt-get -o DPkg::Lock::Timeout=60 install -y "linux-headers-${KERNEL_VERSION}" || echo "Warning: kernel headers installation failed"
-                # Try loading again
-                if modprobe "$module" 2>/dev/null; then
-                    echo "  ✓ $module loaded after installing headers"
-                    LOADED_COUNT=$((LOADED_COUNT + 1))
-                else
-                    echo "  ⚠ $module: $(echo "$ERROR_MSG" | head -1)"
-                fi
-            else
-                # Check for "Operation not permitted" - might be kernel lockdown or security policy
-                if echo "$ERROR_MSG" | grep -qi "operation not permitted"; then
-                    if check_module_loading_restricted; then
-                        echo "  ⚠ $module: kernel module loading is restricted (kernel lockdown or security policy)"
-                        echo "    Checking if NFS support is available via built-in kernel..."
-                        if check_nfs_available; then
-                            echo "    ✓ NFS filesystem support is available (built into kernel)"
-                            BUILTIN_COUNT=$((BUILTIN_COUNT + 1))
-                        else
-                            echo "    ⚠ NFS support may not be available"
-                        fi
-                    elif check_nfs_available; then
-                        echo "  ✓ $module: NFS support available (built into kernel, module loading restricted)"
-                        BUILTIN_COUNT=$((BUILTIN_COUNT + 1))
-                    else
-                        echo "  ⚠ $module: Operation not permitted - may need to check kernel configuration"
-                    fi
-                elif check_nfs_available; then
-                    echo "  ✓ $module: NFS support available (built into kernel)"
-                    BUILTIN_COUNT=$((BUILTIN_COUNT + 1))
-                else
-                    echo "  ⚠ $module: $(echo "$ERROR_MSG" | head -1)"
-                fi
-            fi
-        fi
+        echo "    WARN  $module could not be loaded"
+        missing=$((missing + 1))
     fi
 done
 
-echo ""
-echo "Verifying NFS support:"
-TOTAL_NFS_SUPPORT=$((LOADED_COUNT + BUILTIN_COUNT))
-NFS_FS_AVAILABLE=false
-NFS_VERSIONS=""
-if check_nfs_available; then
-    NFS_FS_AVAILABLE=true
-    # Check which NFS versions are available
-    if grep -q " nfs " /proc/filesystems 2>/dev/null; then
-        NFS_VERSIONS="${NFS_VERSIONS}nfs "
-    fi
-    if grep -q " nfs4 " /proc/filesystems 2>/dev/null; then
-        NFS_VERSIONS="${NFS_VERSIONS}nfs4 "
-    fi
-    echo "✓ NFS filesystem support detected in kernel (${NFS_VERSIONS})"
-fi
-
-# For Longhorn RWX, we primarily need NFS client support (nfs, lockd, sunrpc)
-if [ "$NFS_FS_AVAILABLE" = true ]; then
-    if [ "$LOADED_COUNT" -ge 3 ] || [ "$TOTAL_NFS_SUPPORT" -ge 3 ]; then
-        echo "✓ NFS support sufficient for Longhorn RWX ($LOADED_COUNT loaded, $BUILTIN_COUNT built-in)"
-    else
-        echo "✓ NFS filesystem support available (may work for RWX: $LOADED_COUNT loaded, $BUILTIN_COUNT built-in)"
-    fi
-    lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" | sed 's/^/  /' || echo "  (Some modules are built into kernel)"
-elif [ "$TOTAL_NFS_SUPPORT" -ge 2 ]; then
-    echo "✓ NFS support available ($LOADED_COUNT loaded, $BUILTIN_COUNT built-in)"
-    lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" | sed 's/^/  /' || echo "  (Some modules are built into kernel)"
+# The client side -- sunrpc, lockd, nfs -- is what Longhorn's RWX mounts need.
+# nfsd is the server side and only matters if this node runs the share itself.
+echo "==> Verifying NFS filesystem support"
+if grep -qE '^nodev[[:space:]]+nfs4?$|[[:space:]]nfs4?$' /proc/filesystems; then
+    echo "    ok    kernel reports: $(awk '$NF ~ /^nfs4?$/ {printf "%s ", $NF}' /proc/filesystems)"
+elif [ "$missing" -eq 0 ]; then
+    echo "    ok    all modules present (filesystem list did not report nfs)"
 else
-    echo "⚠ Warning: Limited NFS support ($LOADED_COUNT loaded, $BUILTIN_COUNT built-in)"
-    echo "  NFS filesystem not detected - RWX volumes may not work"
-    lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" | sed 's/^/  /' || echo "  No NFS modules found"
+    echo "    WARN  NFS filesystem support not detected -- RWX volumes will not work"
 fi
 
-# Make modules persistent (only if they're loadable modules)
+# Persist across reboots. Only loadable modules belong here; listing a builtin
+# makes systemd-modules-load log a spurious failure on every boot.
 MODULES_FILE="/etc/modules-load.d/k3s-nfs.conf"
-if [ ! -f "$MODULES_FILE" ]; then
-    echo ""
-    echo "Making modules persistent across reboots..."
-    for module in "${MODULES[@]}"; do
-        # Only add to modules-load.d if the module can be loaded (not built-in)
-        if modprobe -n "$module" 2>/dev/null; then
-            echo "$module" | sudo tee -a "$MODULES_FILE" > /dev/null
-        fi
-    done
-    if [ -f "$MODULES_FILE" ]; then
-        echo "✓ Created $MODULES_FILE"
-    else
-        echo "ℹ All NFS modules appear to be built into kernel (no modules-load.d file needed)"
-    fi
+if [ -f "$MODULES_FILE" ]; then
+    echo "==> $MODULES_FILE already present"
 else
-    echo ""
-    echo "✓ Modules already configured to load on boot ($MODULES_FILE exists)"
+    echo "==> Writing $MODULES_FILE"
+    if [ -n "$PERSIST" ]; then
+        printf '%s\n' $PERSIST | sudo tee "$MODULES_FILE" >/dev/null
+        echo "    ok    persisted: $PERSIST"
+    else
+        echo "    ok    nothing loadable to persist (all builtin or unavailable)"
+    fi
 fi
 
-echo ""
-echo "========================================="
-echo "NFS Module Setup Complete"
-echo "========================================="
-
-set -e  # Re-enable exit on error
-
-
-
-
-
-
-
-
-
-
-
-
+exit 0

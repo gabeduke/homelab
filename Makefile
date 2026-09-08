@@ -144,13 +144,13 @@ sync:
 	scp scripts/control-plane/run.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
 	scp scripts/control-plane/ip.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
 	scp scripts/setup.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(CONTROL_PLANE_NODE):/home/$(USER)/ || true
+	scp scripts/load-nfs-modules.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
 	scp scripts/agent/run.sh $(WORKER1):/home/$(USER)/
 	scp scripts/setup.sh $(WORKER1):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(WORKER1):/home/$(USER)/ || true
+	scp scripts/load-nfs-modules.sh $(WORKER1):/home/$(USER)/
 	scp scripts/agent/run.sh $(WORKER2):/home/$(USER)/
 	scp scripts/setup.sh $(WORKER2):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(WORKER2):/home/$(USER)/ || true
+	scp scripts/load-nfs-modules.sh $(WORKER2):/home/$(USER)/
 	# scp scripts/agent/run.sh $(WORKER4):/home/$(USER)/
 	# scp scripts/setup.sh $(WORKER4):/home/$(USER)/
 	# scp scripts/load-nfs-modules.sh $(WORKER4):/home/$(USER)/ || true
@@ -161,12 +161,26 @@ setup-cron:
 	@ssh $(CONTROL_PLANE_NODE) "crontab -l | grep -v 'ip.sh' | { cat; echo '@hourly /home/$(USER)/ip.sh >> /home/$(USER)/log/ip-cron.log 2>&1'; } | crontab -"
 	@ssh $(CONTROL_PLANE_NODE) "mkdir -p /home/$(USER)/log"
 
+# setup.sh exits 3 when a node needs a reboot for cgroup changes to take effect.
+# It no longer reboots on its own -- `make setup` runs against live nodes, and an
+# unannounced control-plane reboot is an undrained outage. Opt in per run with
+# `make setup REBOOT=1`, and prefer one node at a time.
+REBOOT ?= 0
+
 .PHONY: setup
-setup: 
-	ssh $(CONTROL_PLANE_NODE) bash setup.sh
-	ssh $(WORKER1) bash setup.sh
-	ssh $(WORKER2) bash setup.sh
-	# ssh -t $(WORKER4) bash setup.sh
+setup:
+	@rc_any=0; \
+	for n in $(CONTROL_PLANE_NODE) $(WORKER1) $(WORKER2); do \
+		echo "==> setup $$n"; \
+		ssh $$n "REBOOT=$(REBOOT) bash setup.sh"; \
+		rc=$$?; \
+		if [ $$rc -eq 3 ]; then \
+			echo "!! $$n needs a reboot -- re-run with: make setup REBOOT=1"; rc_any=3; \
+		elif [ $$rc -ne 0 ]; then \
+			echo "!! $$n setup FAILED (exit $$rc)"; exit $$rc; \
+		fi; \
+	done; \
+	exit $$rc_any
 
 .PHONY: patch
 patch:
