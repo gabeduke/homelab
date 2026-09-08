@@ -14,21 +14,26 @@ gift-wiki deployment.
 01-makefile-and-docs      ── DONE, verified (0ee2d6e)
 02-nfs-and-setup-scripts  ── DONE, verified on all 3 nodes (0a2bf31)
 03-k3s-config-migration   ── DONE, verified 2026-09-08
-04-cert-manager-upgrade   ── BLOCKS 05
-05-k3s-136-upgrade        ── requires 04
+04-cert-manager-upgrade   ── DONE, verified 2026-09-08
+05-k3s-136-upgrade        ── UNBLOCKED (04 done)
 06-ubuntu-lts-upgrade     ── do after 05; workers first, alphapi last
 07-dns-endpoints-namespace ── independent, low risk, docs+manifests only
 ```
 
-**01, 02 and 03 are done.** Of what remains, 04-06 are high risk and mutate
-live cluster or node state; **04 is next in that order**. **07 is the one cheap
-item** — additive manifests plus a namespace, safe because external-dns runs
-`policy: upsert-only`. It can be done at any time, independently, and is a good
-choice if you want progress without a maintenance window.
+**01, 02, 03 and 04 are done.** Of what remains, 05 and 06 are high risk and
+mutate live cluster or node state; **05 is next in that order**, and 04 has
+unblocked it — cert-manager is now on 1.21.1, which supports Kubernetes 1.36.
+**07 is the one cheap item** — additive manifests plus a namespace, safe because
+external-dns runs `policy: upsert-only`. It can be done at any time,
+independently, and is a good choice if you want progress without a maintenance
+window.
 
-**04 must precede 05.** cert-manager 1.14.5 does not support Kubernetes 1.36
-(see 04 for the verified support matrix). Upgrading k3s first would run the
-component that issues every TLS cert in the cluster outside its supported range.
+**Read plan 04's Outcome section before starting 05.** It carries three
+corrections to its own body plus reusable technique: render both chart versions
+and diff the object sets to turn "N minors is scary" into a countable fact;
+never `kubectl apply` a repo Application file while auto-sync is deliberately
+off; and there is no `argocd` CLI here, so syncs are triggered by patching the
+Application's `operation` field.
 
 ## Before anything that touches a node
 

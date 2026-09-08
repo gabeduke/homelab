@@ -12,10 +12,12 @@ spec:
   source:
     repoURL: https://charts.jetstack.io
     chart: cert-manager
-    targetRevision: "1.14.5"
+    targetRevision: "1.21.1"
     helm:
       values: |-
-        installCRDs: true
+        crds:
+          enabled: true
+          keep: true
         prometheus:
           enabled: false
         global:

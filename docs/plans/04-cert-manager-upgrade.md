@@ -291,3 +291,102 @@ cert-manager-edit, metrics port) do not apply to this configuration.
 Migrate the deprecated installCRDs to crds.enabled/crds.keep; keep:true matters
 because the ArgoCD Application prunes.
 ```
+
+---
+
+## Outcome — executed 2026-09-08 (session 8)
+
+Upgrade completed on the first attempt, no rollback, no fallback through 1.17.
+Live: `quay.io/jetstack/cert-manager-{controller,cainjector,webhook}:v1.21.1`,
+all three `1/1 Running` with **zero restarts**. Post-upgrade state verified
+identical to the pre-upgrade baseline: 3 nodes Ready v1.35.5+k3s1, certs
+**15/15 True** (byte-identical `kubectl get cert -A` output), 4 ClusterIssuers
+Ready, 5 ArgoCD apps Synced/Healthy, `longhorn` still the sole default
+StorageClass, `svclb-traefik` 3/3. No errors in the controller or webhook logs.
+
+### Correction 1 — the CRD risk was overstated
+
+This plan called "the CRD upgrade across seven minor versions under ArgoCD with
+`selfHeal` and `prune`" the real risk. Measured, it is close to a non-event:
+
+- Rendering both charts with this cluster's values and diffing the object sets
+  gives **48 objects vs 48, with zero additions and zero removals.** With
+  `prune: true` there was therefore nothing to prune. ArgoCD's own refresh
+  agreed: 44 resources OutOfSync (the 48 less the 4 `startupapicheck` hook
+  objects), none marked for pruning.
+- All 6 CRDs are the same 6, each with a **single `v1` version, served and
+  storage, `conversion: None`** on both sides. So this is an in-place schema
+  update on one unchanged version — no conversion webhook, no storage-version
+  migration, nothing to re-encode.
+
+Do this same render-and-diff before plan 05. It converts "seven minors is scary"
+into a countable fact in about two minutes.
+
+### Correction 2 — do NOT `kubectl apply` the repo file at step 4
+
+Step 4 offers "or apply the repo change" as an alternative to patching. **That
+silently undoes step 1.** The repo file carries `syncPolicy.automated`, so
+applying it re-enables auto-sync mid-upgrade — exactly what step 1 exists to
+prevent. Patch the source fields only:
+
+```bash
+kubectl -n argocd patch application cert-manager --type merge \
+  -p '{"spec":{"source":{"targetRevision":"1.21.1","helm":{"values":"..."}}}}'
+```
+
+Build that patch **from the repo file** so live and repo cannot drift, then
+re-apply the full file (or `make iot`) after auto-sync is back on. Verified
+afterwards with `kubectl diff -f clusters/iot/namespace-argocd/cert-manager.yaml`
+→ no spec difference.
+
+### Correction 3 — the step 5 http01 canary would litter production DNS
+
+Do not run it as written. `canary.leetserve.com` does not resolve, and
+external-dns runs `--policy=upsert-only --source=ingress`: it would create a
+record for the http01 solver Ingress and then **never delete it**, leaving a
+permanent stale `canary.leetserve.com` A record plus its TXT registry entry.
+
+What was run instead — and it is the better test, as this plan's own note
+suggests: a temporary `ClusterIssuer` pointing at the **staging ACME server with
+the Route53 dns01 solver**, copied from `letsencrypt-aws-prod` (distinct
+`privateKeySecretRef` so the existing staging account key is untouched).
+cert-manager creates and deletes the `_acme-challenge` TXT record itself, so it
+self-cleans — confirmed absent afterwards via `dig`.
+
+Both canaries passed:
+
+| Canary | Proves | Result |
+|---|---|---|
+| `selfsigned` ClusterIssuer | Certificate → CertificateRequest → Secret on the new CRDs | Ready=True in ~4s |
+| staging ACME + Route53 dns01 | Order/Challenge CRDs, Route53 API with the static-key Secret, `podDnsConfig` self-check resolvers, outbound ACME | challenge `pending → valid`, Ready=True in ~110s; real cert from `(STAGING) Ersatz Emmer YR2` |
+
+The dns01 canary is what makes "15/15 Ready" meaningful — it exercises the
+solver path the production issuer actually uses. All canary objects deleted;
+the 4 original ClusterIssuers are intact.
+
+### Notes for plan 05
+
+- **The STATE.md gap is closed.** `global.leaderElection.namespace` and
+  `podDnsConfig` were the two keys this plan's research never checked. Both are
+  present in the 1.21.1 `values.schema.json` (whose root really is
+  `additionalProperties: false`), as are `crds.enabled`, `crds.keep`,
+  `installCRDs` and `prometheus.enabled`. `helm template` exits 0.
+- Breaking change #3 was moot in both directions: **1.14.5 does not render the
+  `serviceaccounts/token` RBAC either**, so there was nothing to remove.
+- **There is no `argocd` CLI on the workstation.** Trigger a sync by patching
+  the Application's top-level `operation` field:
+  ```bash
+  kubectl -n argocd patch application cert-manager --type merge -p '{"operation":
+    {"initiatedBy":{"username":"plan-04"},
+     "sync":{"revision":"1.21.1","prune":false,"syncStrategy":{"hook":{}}}}}'
+  ```
+- Every jetstack chart version carries a leading `v` (`v1.21.1`). A bare
+  `targetRevision: "1.21.1"` still resolves because ArgoCD treats it as a semver
+  constraint — which is why `"1.14.5"` worked. Keep the existing no-`v` style.
+- `make iot` was deliberately **not** used: baseline `make diff` showed two
+  unrelated drifts it would also have pushed (a mosquitto values *comment*, and
+  `wikileet/django-app-secrets`). Both are pre-existing; see the STATE.md backlog.
+- Backups from step 0 are in `/tmp/cm-backup` (25 TLS secrets, 4 ClusterIssuers,
+  6 CRDs) — `/tmp` does not survive a reboot, so re-take them for plan 05.
+
+**Plan 05 is now unblocked.** cert-manager 1.21 supports Kubernetes 1.33–1.36.
