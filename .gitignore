@@ -2,6 +2,10 @@
 **/*.env
 **/*.credentials
 **/kubeconfig
+# Cluster admin credentials fetched by `make get-kubeconfig`. chmod 600 protects
+# them on disk; this keeps them out of a `git add -A`.
+.k3s.yaml
+.k3s.yaml.bak
 **/*-secret.yaml
 **/tmp/
 

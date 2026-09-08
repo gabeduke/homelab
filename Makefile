@@ -1,16 +1,23 @@
 USER=gabeduke
 CONTROL_PLANE_NODE=$(USER)@alphapi
-WORKER1=$(USER)@betapi
-WORKER2=$(USER)@charliepi
-WORKER3=$(USER)@mothership
-WORKER4=$(USER)@bigpi
+
+# Workers currently in the cluster. `mothership` and `bigpi` were removed and
+# are deliberately absent. Add a host back HERE and nowhere else -- every target
+# below iterates these lists rather than keeping its own copy.
+WORKER_HOSTS = betapi charliepi
+WORKERS      = $(addprefix $(USER)@,$(WORKER_HOSTS))
+ALL_NODES    = $(CONTROL_PLANE_NODE) $(WORKERS)
 
 EXTRA_SANS=alphapi
 
 TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/node-token)
 CONTROL_IP = $(shell ssh $(CONTROL_PLANE_NODE) hostname --all-ip-addresses | awk '{print $$1}')
 EXTERNAL_IP = $(shell ssh $(CONTROL_PLANE_NODE) dig +short myip.opendns.com @resolver1.opendns.com)
-KUBECONFIG = $(shell ssh $(CONTROL_PLANE_NODE) cat /etc/rancher/k3s/k3s.yaml)
+
+# Do NOT define a KUBECONFIG variable here. If KUBECONFIG is set in the
+# environment when make starts, make re-exports ITS value into every recipe --
+# so a makefile-level KUBECONFIG points every kubectl call in this file at the
+# wrong place. The old one held the entire text of k3s.yaml and was unused.
 
 ARGOCD_PASSWORD = $(shell kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
@@ -109,10 +116,10 @@ argocd:
 .PHONY: uninstall
 uninstall:
 	ssh $(CONTROL_PLANE_NODE) /usr/local/bin/k3s-uninstall.sh
-	ssh $(WORKER1) /usr/local/bin/k3s-agent-uninstall.sh
-	ssh $(WORKER2) /usr/local/bin/k3s-agent-uninstall.sh
-	# ssh -t $(WORKER3) /usr/local/bin/k3s-agent-uninstall.sh
-	# ssh $(WORKER4) /usr/local/bin/k3s-agent-uninstall.sh
+	@for n in $(WORKERS); do \
+		echo "==> uninstalling k3s agent on $$n"; \
+		ssh $$n /usr/local/bin/k3s-agent-uninstall.sh || exit $$?; \
+	done
 
 .PHONY: install-control-plane
 install-control-plane:
@@ -120,10 +127,10 @@ install-control-plane:
 
 .PHONY: install-agent
 install-agent:
-	ssh $(WORKER1) sh run.sh $(TOKEN) $(CONTROL_IP) $(EXTERNAL_IP)
-	ssh $(WORKER2) sh run.sh $(TOKEN) $(CONTROL_IP) $(EXTERNAL_IP)
-	# ssh -t $(WORKER3) sh run.sh $(TOKEN) $(CONTROL_IP) $(EXTERNAL_IP)
-	# ssh -t $(WORKER4) sh run.sh $(TOKEN) $(CONTROL_IP) $(EXTERNAL_IP)
+	@for n in $(WORKERS); do \
+		echo "==> installing k3s agent on $$n"; \
+		ssh $$n sh run.sh '$(TOKEN)' '$(CONTROL_IP)' '$(EXTERNAL_IP)' || exit $$?; \
+	done
 
 .PHONY: apply-cluster
 apply-cluster: sync setup install-control-plane install-agent
@@ -131,29 +138,26 @@ apply-cluster: sync setup install-control-plane install-agent
 .PHONY: get-kubeconfig
 get-kubeconfig:
 	@scp $(CONTROL_PLANE_NODE):/etc/rancher/k3s/k3s.yaml .k3s.yaml
-	chown $(USER):$(USER) .k3s.yaml
+	@chmod 600 .k3s.yaml
+	@ip='$(CONTROL_IP)'; \
+		sed -i.bak "s|https://127.0.0.1:6443|https://$$ip:6443|" .k3s.yaml && rm -f .k3s.yaml.bak; \
+		echo "==> .k3s.yaml points at $$ip:6443"
 
 .PHONY: merge-kubeconfig
-merge-kubeconfig:
-	cp ~/.kube/config ~/.kube/config.bak 
-	kubeconfig=~/.kube/config:.k3s.yaml kubectl config view --flatten > /tmp/config 
-	mv /tmp/config ~/.kube/config 
+merge-kubeconfig: get-kubeconfig
+	cp ~/.kube/config ~/.kube/config.bak
+	KUBECONFIG=$$HOME/.kube/config:$(CURDIR)/.k3s.yaml kubectl config view --flatten > /tmp/config
+	mv /tmp/config ~/.kube/config
 
 .PHONY: sync
 sync:
-	scp scripts/control-plane/run.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
-	scp scripts/control-plane/ip.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
-	scp scripts/setup.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
-	scp scripts/agent/run.sh $(WORKER1):/home/$(USER)/
-	scp scripts/setup.sh $(WORKER1):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(WORKER1):/home/$(USER)/
-	scp scripts/agent/run.sh $(WORKER2):/home/$(USER)/
-	scp scripts/setup.sh $(WORKER2):/home/$(USER)/
-	scp scripts/load-nfs-modules.sh $(WORKER2):/home/$(USER)/
-	# scp scripts/agent/run.sh $(WORKER4):/home/$(USER)/
-	# scp scripts/setup.sh $(WORKER4):/home/$(USER)/
-	# scp scripts/load-nfs-modules.sh $(WORKER4):/home/$(USER)/ || true
+	scp scripts/control-plane/run.sh scripts/control-plane/ip.sh scripts/setup.sh \
+		scripts/load-nfs-modules.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
+	@for n in $(WORKERS); do \
+		echo "==> syncing scripts to $$n"; \
+		scp scripts/agent/run.sh scripts/setup.sh scripts/load-nfs-modules.sh \
+			$$n:/home/$(USER)/ || exit $$?; \
+	done
 
 .PHONY: setup-cron
 setup-cron:
@@ -170,7 +174,7 @@ REBOOT ?= 0
 .PHONY: setup
 setup:
 	@rc_any=0; \
-	for n in $(CONTROL_PLANE_NODE) $(WORKER1) $(WORKER2); do \
+	for n in $(ALL_NODES); do \
 		echo "==> setup $$n"; \
 		ssh $$n "REBOOT=$(REBOOT) bash setup.sh"; \
 		rc=$$?; \
@@ -182,50 +186,32 @@ setup:
 	done; \
 	exit $$rc_any
 
+# The remote command MUST stay single-quoted. Unquoted, make's /bin/sh parses
+# the `&&` locally, so `apt-get update` ran on the node and `apt-get upgrade`
+# ran on the Mac -- no node was ever actually upgraded by this target.
+#
+# Serial on purpose: parallel apt-get across nodes interleaves output
+# unreadably, and this is three Raspberry Pis, not a fleet.
 .PHONY: patch
 patch:
-	@$(MAKE) -j patch-control-plane patch-agent1 patch-agent2
-
-patch-control-plane:
-	ssh $(CONTROL_PLANE_NODE) sudo apt-get update && sudo apt-get upgrade -y
-
-patch-agent1:
-	ssh $(WORKER1) sudo apt-get update && sudo apt-get upgrade -y
-
-patch-agent2:
-	ssh $(WORKER2) sudo apt-get update && sudo apt-get upgrade -y
-
-patch-agent4:
-	ssh $(WORKER4) sudo apt-get update && sudo apt-get upgrade -y
+	@for n in $(ALL_NODES); do \
+		echo "==> patching $$n"; \
+		ssh $$n 'sudo apt-get update && sudo apt-get upgrade -y' || echo "!! $$n FAILED"; \
+	done
 
 # NFS Module Management (required for Longhorn RWX volumes)
 .PHONY: load-nfs-modules
 load-nfs-modules:
-	@echo "Loading NFS modules on all nodes..."
-	@$(MAKE) -j load-nfs-control-plane load-nfs-agent1 load-nfs-agent2
-
-load-nfs-control-plane:
-	@echo "Loading NFS modules on control plane..."
-	@ssh $(CONTROL_PLANE_NODE) 'bash -s' < scripts/load-nfs-modules.sh || echo "Warning: Failed to load NFS modules on control plane"
-
-load-nfs-agent1:
-	@echo "Loading NFS modules on agent1..."
-	@ssh $(WORKER1) 'bash -s' < scripts/load-nfs-modules.sh || echo "Warning: Failed to load NFS modules on agent1"
-
-load-nfs-agent2:
-	@echo "Loading NFS modules on agent2..."
-	@ssh $(WORKER2) 'bash -s' < scripts/load-nfs-modules.sh || echo "Warning: Failed to load NFS modules on agent2"
+	@for n in $(ALL_NODES); do \
+		echo "==> loading NFS modules on $$n"; \
+		ssh $$n 'bash -s' < scripts/load-nfs-modules.sh || echo "!! $$n FAILED"; \
+	done
 
 .PHONY: check-nfs-modules
 check-nfs-modules:
-	@echo "Checking NFS modules on all nodes..."
-	@echo ""
-	@echo "Control Plane ($(CONTROL_PLANE_NODE)):"
-	@ssh $(CONTROL_PLANE_NODE) 'lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" || echo "  No NFS modules loaded"' || echo "  Failed to check"
-	@echo ""
-	@echo "Worker 1 ($(WORKER1)):"
-	@ssh $(WORKER1) 'lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" || echo "  No NFS modules loaded"' || echo "  Failed to check"
-	@echo ""
-	@echo "Worker 2 ($(WORKER2)):"
-	@ssh $(WORKER2) 'lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" || echo "  No NFS modules loaded"' || echo "  Failed to check"
+	@for n in $(ALL_NODES); do \
+		echo ""; echo "$$n:"; \
+		ssh $$n 'lsmod | grep -E "^nfs|^nfsd|^lockd|^sunrpc" || echo "  No NFS modules loaded"' \
+			|| echo "  Failed to check"; \
+	done
 

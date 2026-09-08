@@ -139,7 +139,17 @@ Applications in `namespace-argocd/` follow this pattern:
 - Use `helm.values` for inline value overrides
 
 ### Tolerations
-The control plane has taint `node-role.kubernetes.io/master=true:NoSchedule`. System components like node-exporter need tolerations to run on the control plane.
+The control plane has taint `node-role.kubernetes.io/control-plane=true:NoSchedule`
+(set by `scripts/control-plane/run.sh`). System components like node-exporter need
+tolerations to run on the control plane.
+
+The deprecated `node-role.kubernetes.io/master` key is **not** the live taint.
+Documenting it as such caused the session-1 off-network outage: `svclb-traefik`
+tolerates `control-plane`, so it never scheduled on alphapi. Some manifests
+(`namespace-longhorn-system/patch-manager-tolerations.yaml:10`,
+`patch-ui-tolerations.yaml:10`) still list `master` alongside `control-plane` --
+harmless, since both keys are tolerated, but do not copy that pattern into new
+manifests.
 
 ### External DNS
 Services use annotation `external-dns.alpha.kubernetes.io/hostname: <domain>` to automatically create DNS records (domain: leetserve.com).
