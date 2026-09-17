@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cash-for-kids
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: cash-for-kids
+    server: https://kubernetes.default.svc
+  source:
+    # Private repo: ArgoCD reads it with the deploy key in the argocd/repo-cash-for-kids
+    # Secret (created out of band by cash-for-kids `make argocd-repo-key`).
+    repoURL: git@github.com:gabeduke/cash-for-kids.git
+    path: deploy/prod
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

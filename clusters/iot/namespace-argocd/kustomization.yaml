@@ -17,6 +17,7 @@ resources:
 # - loki.yaml
 - mosquitto.yaml
 - prom-stack.yaml
+- cash-for-kids.yaml
 # - reap.yaml
 patches:
 - target:
