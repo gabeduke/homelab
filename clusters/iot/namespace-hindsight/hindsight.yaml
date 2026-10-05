@@ -1,0 +1,60 @@
+#
+# Hindsight runs on a Raspberry Pi outside the cluster (nginx :80 -> 127.0.0.1:5000,
+# with a WebSocket upgrade for /api/live). A selectorless Service plus a manual
+# Endpoints object lets Traefik route to it like any in-cluster backend.
+#
+# Hindsight's API has NO authentication of its own (handleDelete destroys takes),
+# so this Ingress must always carry the forward-auth middleware.
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: hindsight
+  namespace: hindsight
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: hindsight
+  namespace: hindsight
+subsets:
+  - addresses:
+      - ip: 192.168.1.79
+    ports:
+      - name: http
+        port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hindsight
+  namespace: hindsight
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-aws-prod
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-https-redirect@kubernetescrd,kube-system-traefik-forward-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - hindsight.leetserve.com
+      secretName: hindsight-tls
+  rules:
+    - host: hindsight.leetserve.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hindsight
+                port:
+                  number: 80
