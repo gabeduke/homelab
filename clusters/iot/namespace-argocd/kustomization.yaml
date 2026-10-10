@@ -11,6 +11,7 @@ resources:
 # - minecraft.yaml
 - cert-manager.yaml
 - external-dns.yaml
+- hindsight-hub.yaml
 # - gift-wiki.yaml
 # - gift-wiki-dev.yaml
 - influxdb.yaml
