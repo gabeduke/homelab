@@ -57,7 +57,13 @@ EOF
 # static SANs above instead of clobbering them.
 if [ ! -f /etc/rancher/k3s/config.yaml.d/10-external-ip.yaml ]; then
     sudo mkdir -p /etc/rancher/k3s/config.yaml.d
-    EXTERNAL_IP="$(dig +short myip.opendns.com @resolver1.opendns.com)"
+    # Last line only, and a whole-value check: see ip.sh for what dig's retry
+    # lines did to node-external-ip on 2026-10-08.
+    EXTERNAL_IP="$(dig +short +tries=3 +time=5 myip.opendns.com @resolver1.opendns.com 2>/dev/null | tail -1)"
+    if ! [[ "${EXTERNAL_IP}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        echo "could not resolve the public IP (got '${EXTERNAL_IP}'); try again" >&2
+        exit 1
+    fi
     sudo tee /etc/rancher/k3s/config.yaml.d/10-external-ip.yaml >/dev/null <<EOF
 # Managed by ip.sh -- rewritten when the ISP lease changes. Do not hand-edit.
 tls-san+:
