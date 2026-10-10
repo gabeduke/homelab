@@ -1,0 +1,30 @@
+# The Hindsight hub: Hindsights on other networks heartbeat to
+# hub.hindsight.leetserve.com, and it turns each into a cert-manager
+# Certificate and an external-dns DNSEndpoint for <name>.hindsight.leetserve.com
+# pointing at the box's LAN address. Manifests and image live in the hindsight
+# repo (deploy/hub, ghcr.io/gabeduke/hindsight-hub); its release workflow bumps
+# the image tag there, and this follows main.
+#
+# Devices are enrolled out of band (hindsight repo: scripts/hub-enroll.sh),
+# which writes the hindsight-devices Secret. It isn't in git, so Argo neither
+# tracks nor prunes it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hindsight-hub
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: hindsight
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/gabeduke/hindsight
+    path: deploy/hub
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
