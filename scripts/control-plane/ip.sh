@@ -20,12 +20,19 @@ DROPIN="/etc/rancher/k3s/config.yaml.d/10-external-ip.yaml"
 mkdir -p "${LOG_DIR}"
 touch "${IPS_LOG}"
 
-CURRENT_IPV4="$(dig +short myip.opendns.com @resolver1.opendns.com || true)"
+# dig prints its retries on stdout before the answer: a slow resolver gives
+# ";; communications error to ...#53: timed out" lines and then the address.
+# Keep the last line only.
+CURRENT_IPV4="$(dig +short +tries=3 +time=5 myip.opendns.com @resolver1.opendns.com 2>/dev/null | tail -1 || true)"
 LAST_IPV4="$(tail -1 "${IPS_LOG}" | awk -F, '{print $2}')"
 
 # A failed lookup must not be mistaken for a new address. Without this, a DNS
 # blip would restart k3s and write garbage into the SAN list.
-if ! printf '%s' "${CURRENT_IPV4}" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+#
+# The whole value is matched, not each line: on 2026-10-08 01:00 a retry line
+# plus the address passed a line-by-line grep, the multi-line string went into
+# node-external-ip, and k3s sat in "activating" for two days.
+if ! [[ "${CURRENT_IPV4}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
     echo "$(date): could not resolve public IP (got '${CURRENT_IPV4}') -- skipping"
     exit 0
 fi
@@ -58,7 +65,12 @@ EOF
 # To actually prune, also remove serving-kube-apiserver.{crt,key} -- deliberately
 # not done here, since regenerating that cert is a bigger blast radius than a
 # lease change warrants.
-sudo k3s kubectl -n kube-system delete secret k3s-serving --ignore-not-found
+#
+# The delete needs the API server, which may be the thing that's down -- it was
+# on 2026-10-08 02:00, and under set -e its failure skipped the restart that
+# would have brought it back. Best effort, bounded; the restart always runs.
+sudo timeout 20 k3s kubectl -n kube-system delete secret k3s-serving --ignore-not-found \
+  || echo "$(date): couldn't delete k3s-serving (API down?); restarting anyway"
 sudo rm -f /var/lib/rancher/k3s/server/tls/dynamic-cert.json
 sudo systemctl restart k3s
 

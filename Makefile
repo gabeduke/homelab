@@ -12,7 +12,7 @@ EXTRA_SANS=alphapi
 
 TOKEN = $(shell ssh $(CONTROL_PLANE_NODE) sudo cat /var/lib/rancher/k3s/server/node-token)
 CONTROL_IP = $(shell ssh $(CONTROL_PLANE_NODE) hostname --all-ip-addresses | awk '{print $$1}')
-EXTERNAL_IP = $(shell ssh $(CONTROL_PLANE_NODE) dig +short myip.opendns.com @resolver1.opendns.com)
+EXTERNAL_IP = $(shell ssh $(CONTROL_PLANE_NODE) dig +short +tries=3 +time=5 myip.opendns.com @resolver1.opendns.com 2>/dev/null | tail -1)
 
 # Do NOT define a KUBECONFIG variable here. If KUBECONFIG is set in the
 # environment when make starts, make re-exports ITS value into every recipe --
