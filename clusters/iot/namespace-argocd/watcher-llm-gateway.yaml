@@ -1,0 +1,31 @@
+# SenseCAP Watcher -> Claude/Gemini vision gateway at watcher-gateway.leetserve.com.
+# Manifests and image live in the watcher-llm-gateway repo (deploy/prod,
+# dukeman/watcher-llm-gateway); its deploy workflow bumps the image tag there, and
+# this follows main.
+#
+# Private repo: ArgoCD reads it with the deploy key in the argocd/repo-watcher-llm-gateway
+# Secret (created out of band by watcher-llm-gateway `make argocd-repo-key`). The app's
+# own Secret comes from `make deploy-secrets`; it isn't in git, so Argo neither tracks
+# nor prunes it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: watcher-llm-gateway
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: watcher-llm-gateway
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: git@github.com:gabeduke/watcher-llm-gateway.git
+    path: deploy/prod
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

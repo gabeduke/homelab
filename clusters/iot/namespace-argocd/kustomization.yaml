@@ -19,6 +19,7 @@ resources:
 - mosquitto.yaml
 - prom-stack.yaml
 - cash-for-kids.yaml
+- watcher-llm-gateway.yaml
 # - reap.yaml
 patches:
 - target:
