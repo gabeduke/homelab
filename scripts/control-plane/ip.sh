@@ -20,6 +20,30 @@ DROPIN="/etc/rancher/k3s/config.yaml.d/10-external-ip.yaml"
 mkdir -p "${LOG_DIR}"
 touch "${IPS_LOG}"
 
+# On every run, changed IP or not, make each LoadBalancer Service's published
+# IPs match the nodes' current external IPs. k3s servicelb only recomputes a
+# Service's status.loadBalancer when its svclb pods change, so after a lease
+# change, and after the agents' own hourly ip.sh restarts, it keeps advertising
+# the old IP and external-dns keeps publishing it (seen 2026-10-11). Workers
+# refresh on their own cron, so this converges within an hour of the last node
+# updating. Best effort: bounded by timeouts, never fails the script.
+reconcile_svclb() {
+    local k="sudo timeout 30 k3s kubectl"
+    local node_ips
+    node_ips="$(${k} get nodes -o jsonpath='{range .items[*]}{.status.addresses[?(@.type=="ExternalIP")].address}{"\n"}{end}' 2>/dev/null | sort -u | xargs)" || return 0
+    [ -n "${node_ips}" ] || return 0
+    ${k} get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace} {.metadata.name} {.status.loadBalancer.ingress[*].ip}{"\n"}{end}' 2>/dev/null \
+      | while read -r ns name lb_ips; do
+            lb_ips="$(echo "${lb_ips}" | tr ' ' '\n' | sort -u | xargs)"
+            [ "${lb_ips}" = "${node_ips}" ] && continue
+            echo "$(date): ${ns}/${name} publishes '${lb_ips}', nodes are '${node_ips}'; restarting its svclb"
+            ${k} -n kube-system rollout restart ds \
+              -l "svccontroller.k3s.cattle.io/svcname=${name},svccontroller.k3s.cattle.io/svcnamespace=${ns}" \
+              || echo "$(date): svclb restart for ${ns}/${name} failed"
+        done || true
+}
+trap reconcile_svclb EXIT
+
 # dig prints its retries on stdout before the answer: a slow resolver gives
 # ";; communications error to ...#53: timed out" lines and then the address.
 # Keep the last line only.
