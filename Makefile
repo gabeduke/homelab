@@ -156,15 +156,29 @@ sync:
 		scripts/load-nfs-modules.sh $(CONTROL_PLANE_NODE):/home/$(USER)/
 	@for n in $(WORKERS); do \
 		echo "==> syncing scripts to $$n"; \
-		scp scripts/agent/run.sh scripts/setup.sh scripts/load-nfs-modules.sh \
-			$$n:/home/$(USER)/ || exit $$?; \
+		scp scripts/agent/run.sh scripts/agent/ip.sh scripts/agent/migrate-external-ip.sh \
+			scripts/setup.sh scripts/load-nfs-modules.sh $$n:/home/$(USER)/ || exit $$?; \
 	done
 
+# Every node runs its own ip.sh (control-plane and agent flavours differ).
 .PHONY: setup-cron
 setup-cron:
-	@echo "Setting up hourly cron job for IP updates on $(CONTROL_PLANE_NODE)..."
-	@ssh $(CONTROL_PLANE_NODE) "crontab -l | grep -v 'ip.sh' | { cat; echo '@hourly /home/$(USER)/ip.sh >> /home/$(USER)/log/ip-cron.log 2>&1'; } | crontab -"
-	@ssh $(CONTROL_PLANE_NODE) "mkdir -p /home/$(USER)/log"
+	@for n in $(CONTROL_PLANE_NODE) $(WORKERS); do \
+		echo "==> hourly ip.sh cron on $$n"; \
+		ssh $$n "mkdir -p /home/$(USER)/log && { crontab -l 2>/dev/null | grep -v 'ip.sh'; echo '@hourly /home/$(USER)/ip.sh >> /home/$(USER)/log/ip-cron.log 2>&1'; } | crontab -" || exit $$?; \
+	done
+
+# One-time: move --node-external-ip off each worker's k3s-agent command line so
+# the hourly ip.sh can manage it. One node at a time, waiting for Ready between.
+.PHONY: migrate-agent-ip
+migrate-agent-ip: sync
+	@for h in $(WORKER_HOSTS); do \
+		echo "==> $$h"; \
+		ssh $(USER)@$$h "bash /home/$(USER)/migrate-external-ip.sh" || exit $$?; \
+		sleep 10; \
+		kubectl wait --for=condition=Ready node/$$h --timeout=180s || exit $$?; \
+	done
+	@kubectl get nodes -o custom-columns='NODE:.metadata.name,EXTERNAL-IP:.status.addresses[?(@.type=="ExternalIP")].address'
 
 # setup.sh exits 3 when a node needs a reboot for cgroup changes to take effect.
 # It no longer reboots on its own -- `make setup` runs against live nodes, and an
