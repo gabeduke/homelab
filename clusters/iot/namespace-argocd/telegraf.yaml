@@ -44,28 +44,13 @@ spec:
                 bucket: "home"
           inputs:
             # Wio Terminal grow monitor (github.com/gabeduke/wio-grow-monitor).
-            # Base topic is grow/<device>; the leading "+" lets a second tent
-            # (grow/tent2) land with no change here. Series are tagged
-            # device=<device> to match the other IoT measurements.
+            # Covers only what reap cannot parse (strings and JSON). Base topic
+            # is grow/<device>; series are tagged device=<device> like reap's.
             #
-            # 1) Numeric readings: plain retained values.
-            - mqtt_consumer:
-                servers:
-                  - "tcp://mosquitto.mosquitto.svc.cluster.local:1883"
-                topics:
-                  - "grow/+/temperature"
-                  - "grow/+/humidity"
-                  - "grow/+/vpd"
-                  - "grow/+/co2"
-                  - "grow/+/in_window"
-                name_prefix: "grow_"
-                data_format: "value"
-                data_type: "float"
-                topic_parsing:
-                  - topic: "grow/+/+"
-                    measurement: "_/_/measurement"
-                    tags: "_/device/_"
-            # 2) Text states: mode (veg/flower/dry/cure) and availability
+            # Numeric readings (temperature, humidity, vpd, co2, in_window) are
+            # written by `reap` (tags group=grow, device=<device>), not here.
+            #
+            # 1) Text states: mode (veg/flower/dry/cure) and availability
             #    (online / offline via the device's last-will).
             - mqtt_consumer:
                 servers:
@@ -80,7 +65,7 @@ spec:
                   - topic: "grow/+/+"
                     measurement: "_/_/measurement"
                     tags: "_/device/_"
-            # 3) Settings in force, echoed by the device after every config
+            # 2) Settings in force, echoed by the device after every config
             #    change. One row per publish; target bands are flattened to
             #    <mode>_<metric>_lo / _hi (an empty [] target yields no field).
             - mqtt_consumer:

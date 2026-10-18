@@ -36,7 +36,7 @@
         "label": "Device",
         "type": "query",
         "datasource": "InfluxDB",
-        "query": "SHOW TAG VALUES FROM \"grow_temperature\" WITH KEY = \"device\"",
+        "query": "SHOW TAG VALUES FROM \"temperature\" WITH KEY = \"device\" WHERE \"group\" = 'grow'",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
@@ -224,7 +224,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_in_window\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "query": "SELECT last(\"value\") FROM \"in_window\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
           "resultFormat": "time_series",
           "policy": "default"
         }
@@ -293,7 +293,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_temperature\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "query": "SELECT last(\"value\") FROM \"temperature\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
           "resultFormat": "time_series",
           "policy": "default"
         }
@@ -348,7 +348,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_humidity\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "query": "SELECT last(\"value\") FROM \"humidity\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
           "resultFormat": "time_series",
           "policy": "default"
         }
@@ -403,7 +403,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_vpd\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "query": "SELECT last(\"value\") FROM \"vpd\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
           "resultFormat": "time_series",
           "policy": "default"
         }
@@ -458,7 +458,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_co2\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "query": "SELECT last(\"value\") FROM \"co2\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
           "resultFormat": "time_series",
           "policy": "default"
         }
@@ -514,7 +514,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"grow_temperature\" WHERE \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "query": "SELECT mean(\"value\") FROM \"temperature\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "$tag_device"
@@ -563,7 +563,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"grow_humidity\" WHERE \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "query": "SELECT mean(\"value\") FROM \"humidity\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "$tag_device"
@@ -612,7 +612,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"grow_vpd\" WHERE \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "query": "SELECT mean(\"value\") FROM \"vpd\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "$tag_device"
@@ -662,7 +662,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"grow_co2\" WHERE \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "query": "SELECT mean(\"value\") FROM \"co2\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "$tag_device"
@@ -711,7 +711,7 @@
         {
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"value\") FROM \"grow_in_window\" WHERE \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(previous)",
+          "query": "SELECT last(\"value\") FROM \"in_window\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(previous)",
           "resultFormat": "time_series",
           "policy": "default",
           "alias": "$tag_device"
