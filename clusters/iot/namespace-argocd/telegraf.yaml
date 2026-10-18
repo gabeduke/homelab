@@ -85,114 +85,153 @@ spec:
                     field:
                       - path: "leaf_offset_c"
                         type: "float"
+                        optional: true
                       - path: "sample_interval_s"
                         type: "int"
+                        optional: true
                       - path: "screen_timeout_s"
                         type: "int"
+                        optional: true
                       - path: "enable_co2"
                         type: "bool"
+                        optional: true
                       - path: "window"
                         type: "string"
+                        optional: true
                       - path: "mode"
                         type: "string"
+                        optional: true
                       - path: "errors"
                         type: "string"
+                        optional: true
                       - path: "targets.veg.temp.0"
                         rename: "veg_temp_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.temp.1"
                         rename: "veg_temp_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.rh.0"
                         rename: "veg_rh_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.rh.1"
                         rename: "veg_rh_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.vpd.0"
                         rename: "veg_vpd_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.vpd.1"
                         rename: "veg_vpd_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.co2.0"
                         rename: "veg_co2_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.veg.co2.1"
                         rename: "veg_co2_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.temp.0"
                         rename: "flower_temp_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.temp.1"
                         rename: "flower_temp_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.rh.0"
                         rename: "flower_rh_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.rh.1"
                         rename: "flower_rh_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.vpd.0"
                         rename: "flower_vpd_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.vpd.1"
                         rename: "flower_vpd_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.co2.0"
                         rename: "flower_co2_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.flower.co2.1"
                         rename: "flower_co2_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.temp.0"
                         rename: "dry_temp_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.temp.1"
                         rename: "dry_temp_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.rh.0"
                         rename: "dry_rh_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.rh.1"
                         rename: "dry_rh_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.vpd.0"
                         rename: "dry_vpd_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.vpd.1"
                         rename: "dry_vpd_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.co2.0"
                         rename: "dry_co2_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.dry.co2.1"
                         rename: "dry_co2_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.temp.0"
                         rename: "cure_temp_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.temp.1"
                         rename: "cure_temp_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.rh.0"
                         rename: "cure_rh_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.rh.1"
                         rename: "cure_rh_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.vpd.0"
                         rename: "cure_vpd_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.vpd.1"
                         rename: "cure_vpd_hi"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.co2.0"
                         rename: "cure_co2_lo"
                         type: "float"
+                        optional: true
                       - path: "targets.cure.co2.1"
                         rename: "cure_co2_hi"
                         type: "float"
+                        optional: true
 
   project: default
   syncPolicy:
