@@ -38,7 +38,7 @@ spec:
           outputs:
             - influxdb_v2:
                 urls:
-                  - "http://influxdb-influxdb2.influxdb.svc:8086"
+                  - "http://influxdb-influxdb2.influxdb.svc:80"
                 token: "$INFLUX_TOKEN"
                 organization: "leetserve"
                 bucket: "home"
