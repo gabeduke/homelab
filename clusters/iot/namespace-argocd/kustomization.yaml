@@ -17,6 +17,7 @@ resources:
 - influxdb.yaml
 # - loki.yaml
 - mosquitto.yaml
+- telegraf.yaml
 - prom-stack.yaml
 - cash-for-kids.yaml
 - watcher-llm-gateway.yaml

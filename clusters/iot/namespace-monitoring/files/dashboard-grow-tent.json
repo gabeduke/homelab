@@ -1,0 +1,1030 @@
+{
+  "uid": "grow-tent",
+  "title": "Grow Tent",
+  "tags": [
+    "iot",
+    "grow",
+    "wio"
+  ],
+  "schemaVersion": 36,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "graphTooltip": 1,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "device",
+        "label": "Device",
+        "type": "query",
+        "datasource": "InfluxDB",
+        "query": "SHOW TAG VALUES FROM \"temperature\" WITH KEY = \"device\" WHERE \"group\" = 'grow'",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "mode",
+        "label": "Mode (targets)",
+        "type": "custom",
+        "query": "veg,flower,dry,cure",
+        "current": {
+          "selected": true,
+          "text": "flower",
+          "value": "flower"
+        },
+        "options": [
+          {
+            "text": "veg",
+            "value": "veg",
+            "selected": false
+          },
+          {
+            "text": "flower",
+            "value": "flower",
+            "selected": true
+          },
+          {
+            "text": "dry",
+            "value": "dry",
+            "selected": false
+          },
+          {
+            "text": "cure",
+            "value": "cure",
+            "selected": false
+          }
+        ],
+        "description": "Which mode's target bands the tiles show. Set it to the Device mode tile."
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Device",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"grow_status\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "online": {
+                  "text": "ONLINE",
+                  "color": "green"
+                },
+                "offline": {
+                  "text": "OFFLINE",
+                  "color": "red"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "description": "MQTT last-will: 'offline' when the Wio Terminal drops off the broker."
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Device mode",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"grow_mode\" WHERE \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Mode on the device now. Keep the $mode dashboard variable on the same value so target tiles match."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "In window",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"in_window\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "IN WINDOW",
+                  "color": "green"
+                },
+                "0": {
+                  "text": "OUT OF WINDOW",
+                  "color": "orange"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Device's own verdict: every metric that has a target is inside its band."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Temperature",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"temperature\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Humidity",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"humidity\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "VPD",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"vpd\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kPa",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "CO2",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"co2\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "description": "Empty unless enable_co2 is true and an MH-Z16 is wired."
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Temperature",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"value\") FROM \"temperature\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_device"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "min",
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "spanNulls": 3600000,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Humidity",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"value\") FROM \"humidity\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_device"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "min",
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "spanNulls": 3600000,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "VPD",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"value\") FROM \"vpd\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_device"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "min",
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kPa",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "spanNulls": 3600000,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Vapour-pressure deficit, computed on the device (Tetens, with leaf_offset_c)."
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "CO2",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"value\") FROM \"co2\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(null)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_device"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "min",
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "spanNulls": 3600000,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "state-timeline",
+      "title": "In target window",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"value\") FROM \"in_window\" WHERE \"group\" = 'grow' AND \"device\" =~ /^$device$/ AND $timeFilter GROUP BY time($__interval), \"device\" fill(previous)",
+          "resultFormat": "time_series",
+          "policy": "default",
+          "alias": "$tag_device"
+        }
+      ],
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "in window",
+                  "color": "green"
+                },
+                "0": {
+                  "text": "out of window",
+                  "color": "orange"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Configuration (retained MQTT: grow/<device>/config -> config/applied)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Settings in force",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "description": "Echo of grow/<device>/config/applied (last 90 days). 'errors' lists config fields the device rejected; empty means all accepted.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"leaf_offset_c\") AS \"leaf_offset_c\", last(\"sample_interval_s\") AS \"sample_interval_s\", last(\"screen_timeout_s\") AS \"screen_timeout_s\", last(\"window\") AS \"window\", last(\"enable_co2\") AS \"enable_co2\", last(\"mode\") AS \"mode\", last(\"errors\") AS \"errors\" FROM \"grow_config\" WHERE \"device\" =~ /^$device$/ AND time > now() - 90d",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Temp target ($mode)",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 30
+      },
+      "description": "Target band for the selected mode, from config/applied. Blank = no target set for this metric.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"${mode}_temp_lo\") AS \"lo\", last(\"${mode}_temp_hi\") AS \"hi\" FROM \"grow_config\" WHERE \"device\" =~ /^$device$/ AND time > now() - 90d",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "noValue": "no target"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "RH target ($mode)",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 30
+      },
+      "description": "Target band for the selected mode, from config/applied. Blank = no target set for this metric.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"${mode}_rh_lo\") AS \"lo\", last(\"${mode}_rh_hi\") AS \"hi\" FROM \"grow_config\" WHERE \"device\" =~ /^$device$/ AND time > now() - 90d",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "humidity",
+          "noValue": "no target"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "type": "stat",
+      "title": "VPD target ($mode)",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 30
+      },
+      "description": "Target band for the selected mode, from config/applied. Blank = no target set for this metric.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"${mode}_vpd_lo\") AS \"lo\", last(\"${mode}_vpd_hi\") AS \"hi\" FROM \"grow_config\" WHERE \"device\" =~ /^$device$/ AND time > now() - 90d",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kPa",
+          "noValue": "no target"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "type": "stat",
+      "title": "CO2 target ($mode)",
+      "datasource": "InfluxDB",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 30
+      },
+      "description": "Target band for the selected mode, from config/applied. Blank = no target set for this metric.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"${mode}_co2_lo\") AS \"lo\", last(\"${mode}_co2_hi\") AS \"hi\" FROM \"grow_config\" WHERE \"device\" =~ /^$device$/ AND time > now() - 90d",
+          "resultFormat": "time_series",
+          "policy": "default"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "noValue": "no target"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 20,
+      "type": "text",
+      "title": "Changing the config",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Grafana can't publish MQTT, so config is changed with a **retained** message on the broker (`mqtt.leetserve.com`). Every field is optional; the device echoes what it accepted to `config/applied` (table above, `errors` column).\n\n```sh\n# switch mode / widen a band / slow the sample rate\nmosquitto_pub -h mqtt.leetserve.com -r -t grow/tent1/config -m '{\n  \"mode\": \"flower\",\n  \"sample_interval_s\": 30,\n  \"targets\": { \"flower\": { \"temp\": [20, 26], \"rh\": [45, 55], \"vpd\": [1.1, 1.4], \"co2\": [] } }\n}'\n# quick mode change only\nmosquitto_pub -h mqtt.leetserve.com -r -t grow/tent1/mode -m veg\n```\n\nFields: `mode` (veg/flower/dry/cure), `leaf_offset_c` (-10..10), `sample_interval_s` (2..60, **clears on-device history**), `screen_timeout_s` (0 = never), `window` (10m/1h/6h/1d/3d/1w), `enable_co2`, `targets.<mode>.<temp|rh|vpd|co2>` = `[lo, hi]` or `[]` to remove. Full reference: github.com/gabeduke/wio-grow-monitor."
+      }
+    }
+  ],
+  "links": []
+}
