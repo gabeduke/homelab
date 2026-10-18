@@ -46,28 +46,11 @@ spec:
             # Wio Terminal grow monitor (github.com/gabeduke/wio-grow-monitor).
             # Base topic is grow/<device>; series are tagged device=<device>.
             #
-            # Numeric readings. reap also writes these (same measurement names and
-            # tags: group, device) but wedges on the first non-numeric message
-            # (it `continue`s without msg.Ack() on a ParseFloat error), and this
-            # device publishes retained strings (status/mode/config) on every
-            # connect. Telegraf subscribes to exact topics, so it is unaffected.
-            - mqtt_consumer:
-                servers:
-                  - "tcp://mosquitto.mosquitto.svc.cluster.local:1883"
-                topics:
-                  - "grow/+/temperature"
-                  - "grow/+/humidity"
-                  - "grow/+/vpd"
-                  - "grow/+/co2"
-                  - "grow/+/in_window"
-                data_format: "value"
-                data_type: "float"
-                topic_parsing:
-                  - topic: "grow/+/+"
-                    measurement: "_/_/measurement"
-                    tags: "group/device/_"
+            # Numeric readings (temperature, humidity, vpd, co2, in_window) are
+            # written by `reap` (tags group, device, sensor); do not add them here
+            # or every point is stored twice.
             #
-            # Text states and JSON config below are the only things reap cannot parse.
+            # Only what reap cannot parse (strings and JSON) is consumed here:
             #
             # 1) Text states: mode (veg/flower/dry/cure) and availability
             #    (online / offline via the device's last-will).
