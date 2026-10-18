@@ -1,0 +1,25 @@
+# Scrapes Traefik (the k3s-bundled ingress controller) so Grafana can show
+# request rate / latency / 4xx-5xx per router. k3s's traefik chart enables the
+# Prometheus exporter on the `metrics` entrypoint (container port 9100) but
+# creates no Service for it, hence a PodMonitor rather than a ServiceMonitor.
+# UNVERIFIED against the live cluster (it was unreachable when written): check
+# the Traefik pod really names that port `metrics`:
+#   kubectl -n kube-system get pod -l app.kubernetes.io/name=traefik -o yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: traefik
+  namespace: monitoring
+  labels:
+    app: traefik
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-system
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traefik
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

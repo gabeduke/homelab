@@ -15,37 +15,197 @@ spec:
     chart: telegraf
     helm:
       values: |-
+        # NOTE: until 2026-10-18 the values below did not parse (a stray quote in
+        # topic_parsing.topic), so this Application could not render at all and
+        # nothing was consuming MQTT. Render before pushing:
+        #   helm template t telegraf --repo https://helm.influxdata.com/ \
+        #     --version 1.8.28 -f <this block, dedented>
+        # tplVersion 2 is required for the nested topic_parsing / json_v2 tables.
+        tplVersion: 2
         envFromSecret: telegraf-env
         config:
           agent:
             interval: "10s"
-            round_interval: "true"
-            metric_batch_size: "1000"
-            metric_buffer_limit: "10000"
+            round_interval: true
+            metric_batch_size: 1000
+            metric_buffer_limit: 10000
             collection_jitter: "0s"
             flush_interval: "10s"
             flush_jitter: "0s"
             precision: ""
-            omit_hostname: "false"
+            omit_hostname: false
+          processors: []
           outputs:
-            influxdb_v2:
-              urls: 
-                - "http://influxdb-influxdb2.influxdb.svc:8086"
-              token: "$INFLUX_TOKEN"
-              organization: "leetserve"
-              bucket: "home"
+            - influxdb_v2:
+                urls:
+                  - "http://influxdb-influxdb2.influxdb.svc:8086"
+                token: "$INFLUX_TOKEN"
+                organization: "leetserve"
+                bucket: "home"
           inputs:
-            mqtt_consumer:
-              servers: 
-                - "tcp://mqtt.leetserve.com:1883"
-              data_format: "value"
-              data_type: "float"
-          inputs:
-            mqtt_consumer:
-              topic_parsing:
-                topic: ""+/+/+"  # all topics with 7 segments"
-                tags: "queue/sensor_id/sensor_type"
-                measurement: "_/_/measurement"
+            # Wio Terminal grow monitor (github.com/gabeduke/wio-grow-monitor).
+            # Base topic is grow/<device>; the leading "+" lets a second tent
+            # (grow/tent2) land with no change here. Series are tagged
+            # device=<device> to match the other IoT measurements.
+            #
+            # 1) Numeric readings: plain retained values.
+            - mqtt_consumer:
+                servers:
+                  - "tcp://mosquitto.mosquitto.svc.cluster.local:1883"
+                topics:
+                  - "grow/+/temperature"
+                  - "grow/+/humidity"
+                  - "grow/+/vpd"
+                  - "grow/+/co2"
+                  - "grow/+/in_window"
+                name_prefix: "grow_"
+                data_format: "value"
+                data_type: "float"
+                topic_parsing:
+                  - topic: "grow/+/+"
+                    measurement: "_/_/measurement"
+                    tags: "_/device/_"
+            # 2) Text states: mode (veg/flower/dry/cure) and availability
+            #    (online / offline via the device's last-will).
+            - mqtt_consumer:
+                servers:
+                  - "tcp://mosquitto.mosquitto.svc.cluster.local:1883"
+                topics:
+                  - "grow/+/mode"
+                  - "grow/+/status"
+                name_prefix: "grow_"
+                data_format: "value"
+                data_type: "string"
+                topic_parsing:
+                  - topic: "grow/+/+"
+                    measurement: "_/_/measurement"
+                    tags: "_/device/_"
+            # 3) Settings in force, echoed by the device after every config
+            #    change. One row per publish; target bands are flattened to
+            #    <mode>_<metric>_lo / _hi (an empty [] target yields no field).
+            - mqtt_consumer:
+                servers:
+                  - "tcp://mosquitto.mosquitto.svc.cluster.local:1883"
+                topics:
+                  - "grow/+/config/applied"
+                data_format: "json_v2"
+                topic_tag: ""
+                topic_parsing:
+                  - topic: "grow/+/config/applied"
+                    tags: "_/device/_/_"
+                json_v2:
+                  - measurement_name: "grow_config"
+                    field:
+                      - path: "leaf_offset_c"
+                        type: "float"
+                      - path: "sample_interval_s"
+                        type: "int"
+                      - path: "screen_timeout_s"
+                        type: "int"
+                      - path: "enable_co2"
+                        type: "bool"
+                      - path: "window"
+                        type: "string"
+                      - path: "mode"
+                        type: "string"
+                      - path: "errors"
+                        type: "string"
+                      - path: "targets.veg.temp.0"
+                        rename: "veg_temp_lo"
+                        type: "float"
+                      - path: "targets.veg.temp.1"
+                        rename: "veg_temp_hi"
+                        type: "float"
+                      - path: "targets.veg.rh.0"
+                        rename: "veg_rh_lo"
+                        type: "float"
+                      - path: "targets.veg.rh.1"
+                        rename: "veg_rh_hi"
+                        type: "float"
+                      - path: "targets.veg.vpd.0"
+                        rename: "veg_vpd_lo"
+                        type: "float"
+                      - path: "targets.veg.vpd.1"
+                        rename: "veg_vpd_hi"
+                        type: "float"
+                      - path: "targets.veg.co2.0"
+                        rename: "veg_co2_lo"
+                        type: "float"
+                      - path: "targets.veg.co2.1"
+                        rename: "veg_co2_hi"
+                        type: "float"
+                      - path: "targets.flower.temp.0"
+                        rename: "flower_temp_lo"
+                        type: "float"
+                      - path: "targets.flower.temp.1"
+                        rename: "flower_temp_hi"
+                        type: "float"
+                      - path: "targets.flower.rh.0"
+                        rename: "flower_rh_lo"
+                        type: "float"
+                      - path: "targets.flower.rh.1"
+                        rename: "flower_rh_hi"
+                        type: "float"
+                      - path: "targets.flower.vpd.0"
+                        rename: "flower_vpd_lo"
+                        type: "float"
+                      - path: "targets.flower.vpd.1"
+                        rename: "flower_vpd_hi"
+                        type: "float"
+                      - path: "targets.flower.co2.0"
+                        rename: "flower_co2_lo"
+                        type: "float"
+                      - path: "targets.flower.co2.1"
+                        rename: "flower_co2_hi"
+                        type: "float"
+                      - path: "targets.dry.temp.0"
+                        rename: "dry_temp_lo"
+                        type: "float"
+                      - path: "targets.dry.temp.1"
+                        rename: "dry_temp_hi"
+                        type: "float"
+                      - path: "targets.dry.rh.0"
+                        rename: "dry_rh_lo"
+                        type: "float"
+                      - path: "targets.dry.rh.1"
+                        rename: "dry_rh_hi"
+                        type: "float"
+                      - path: "targets.dry.vpd.0"
+                        rename: "dry_vpd_lo"
+                        type: "float"
+                      - path: "targets.dry.vpd.1"
+                        rename: "dry_vpd_hi"
+                        type: "float"
+                      - path: "targets.dry.co2.0"
+                        rename: "dry_co2_lo"
+                        type: "float"
+                      - path: "targets.dry.co2.1"
+                        rename: "dry_co2_hi"
+                        type: "float"
+                      - path: "targets.cure.temp.0"
+                        rename: "cure_temp_lo"
+                        type: "float"
+                      - path: "targets.cure.temp.1"
+                        rename: "cure_temp_hi"
+                        type: "float"
+                      - path: "targets.cure.rh.0"
+                        rename: "cure_rh_lo"
+                        type: "float"
+                      - path: "targets.cure.rh.1"
+                        rename: "cure_rh_hi"
+                        type: "float"
+                      - path: "targets.cure.vpd.0"
+                        rename: "cure_vpd_lo"
+                        type: "float"
+                      - path: "targets.cure.vpd.1"
+                        rename: "cure_vpd_hi"
+                        type: "float"
+                      - path: "targets.cure.co2.0"
+                        rename: "cure_co2_lo"
+                        type: "float"
+                      - path: "targets.cure.co2.1"
+                        rename: "cure_co2_hi"
+                        type: "float"
 
   project: default
   syncPolicy:

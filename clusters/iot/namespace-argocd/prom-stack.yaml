@@ -163,6 +163,25 @@ spec:
         grafana:
           admin:
             existingSecret: grafana-credentials
+          # Sign-in is delegated to traefik-forward-auth (Google): the ingress
+          # below puts it in front of Grafana and it sets X-Forwarded-User to the
+          # verified email, which Grafana trusts. No second (basic) login.
+          # Everyone on the forward-auth WHITELIST gets in as a Viewer; promote
+          # admins by hand (login form is hidden, API basic auth stays on because
+          # the datasource/notifier sidecars reload through it):
+          #   kubectl -n monitoring port-forward svc/prom-stack-grafana 3000:80
+          #   curl -u admin:<pw> -X PATCH localhost:3000/api/org/users/<id> \
+          #     -H 'Content-Type: application/json' -d '{"role":"Admin"}'
+          grafana.ini:
+            auth.proxy:
+              enabled: true
+              header_name: X-Forwarded-User
+              header_property: username
+              auto_sign_up: true
+            auth:
+              disable_login_form: true
+            users:
+              auto_assign_org_role: Viewer
           rbac:
             pspEnabled: false
           # Resource limits for Grafana
