@@ -1,0 +1,6 @@
+# Records only, never a workload: deleting an app's namespace must not take
+# its DNS with it. See docs/plans/07-dns-endpoints-namespace.md.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dns-records

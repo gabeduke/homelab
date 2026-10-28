@@ -45,6 +45,13 @@ worst case it is briefly unmanaged. The same setting means stale records are
 never reaped automatically, so removing a DNSEndpoint is not enough to retire a
 hostname; that has to be done in Route53 by hand.
 
+## Status
+
+2026-10-27: `clusters/iot/namespace-dns-records/` exists and is wired into
+`clusters/iot`, holding its first record, `woodshed.yaml`
+(`woodshed.leetserve.com` → GitHub Pages). Moving the `giftwiki*` records here
+(steps 1–4 below) is still to do.
+
 ## Changes
 
 1. Create `clusters/iot/namespace-dns-records/` in this repo:

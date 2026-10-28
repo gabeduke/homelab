@@ -1,0 +1,14 @@
+# Woodshed (gabeduke/song-course) on GitHub Pages. Pages serves the name from
+# the repo's CNAME file and issues the HTTPS certificate itself.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: woodshed
+  namespace: dns-records
+spec:
+  endpoints:
+    - dnsName: woodshed.leetserve.com
+      recordType: CNAME
+      targets:
+        - gabeduke.github.io
+      recordTTL: 300
