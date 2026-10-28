@@ -1,0 +1,14 @@
+# Dukeverse (gabeduke/artbox) on Cloud Run. Cloud Run's domain mapping
+# issues the certificate. Moved here from the dukeverse namespace.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: dukeverse
+  namespace: dns-records
+spec:
+  endpoints:
+    - dnsName: dukeverse.leetserve.com
+      recordType: CNAME
+      targets:
+        - ghs.googlehosted.com
+      recordTTL: 300

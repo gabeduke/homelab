@@ -47,10 +47,24 @@ hostname; that has to be done in Route53 by hand.
 
 ## Status
 
-2026-10-27: `clusters/iot/namespace-dns-records/` exists and is wired into
-`clusters/iot`, holding its first record, `woodshed.yaml`
-(`woodshed.leetserve.com` → GitHub Pages). Moving the `giftwiki*` records here
-(steps 1–4 below) is still to do.
+2026-10-27: steps 1–2 are done, for every record, not just wikileet's.
+`clusters/iot/namespace-dns-records/` is wired into `clusters/iot` and holds
+one file per app: `giftwiki.yaml` (was `wikileet/wikileet-prod`),
+`dukeverse.yaml` (was `dukeverse/dukeverse`, from artbox), `foil-the-james.yaml`
+(was `foil-the-james/foil-the-james`) and `woodshed.yaml` (new, GitHub Pages).
+The app repos' copies are removed in their own PRs.
+
+Still to do by hand, after `make iot` has applied the new records:
+
+```bash
+kubectl -n wikileet delete dnsendpoint wikileet-prod
+kubectl -n dukeverse delete dnsendpoint dukeverse
+kubectl -n foil-the-james delete dnsendpoint foil-the-james
+```
+
+Then step 5, per namespace: `kubectl get all,pvc,secret,configmap -n <ns>`.
+Delete a namespace only once nothing in it is still wanted. `dukeverse` was
+removed from `make namespaces` so it isn't recreated.
 
 ## Changes
 

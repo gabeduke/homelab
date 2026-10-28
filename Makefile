@@ -40,7 +40,6 @@ namespaces:
 	kubectl create namespace influxdb || true
 	kubectl create namespace monitoring || true
 	kubectl create namespace reap || true
-	kubectl create namespace dukeverse || true
 	kubectl create namespace plant-shop || true
 
 .PHONY: secrets
