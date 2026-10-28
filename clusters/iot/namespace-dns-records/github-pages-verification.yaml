@@ -1,0 +1,17 @@
+# Verifies leetserve.com for GitHub Pages on the gabeduke account, so only
+# this account can serve a leetserve.com name from Pages (no takeover if a
+# repo's custom domain is removed). The code comes from github.com →
+# Settings → Pages → Add a domain. Route 53 wants TXT values quoted, hence
+# the inner quotes.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: github-pages-verification
+  namespace: dns-records
+spec:
+  endpoints:
+    - dnsName: _github-pages-challenge-gabeduke.leetserve.com
+      recordType: TXT
+      targets:
+        - '"PASTE-THE-CODE-FROM-GITHUB"'
+      recordTTL: 300

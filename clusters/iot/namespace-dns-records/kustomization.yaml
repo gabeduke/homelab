@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
 - namespace.yaml
 - woodshed.yaml
+# Off until the code from GitHub is in it: a placeholder would be published,
+# and upsert-only never removes it.
+# - github-pages-verification.yaml
