@@ -1,0 +1,20 @@
+# Wikileet (gabeduke/django-gift-wiki) on Cloud Run. Cloud Run's domain
+# mapping issues the certificates. Moved here from the wikileet namespace
+# (it was wikileet-prod there), see docs/plans/07-dns-endpoints-namespace.md.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: giftwiki
+  namespace: dns-records
+spec:
+  endpoints:
+    - dnsName: giftwiki.leetserve.com
+      recordType: CNAME
+      targets:
+        - ghs.googlehosted.com
+      recordTTL: 300
+    - dnsName: giftwiki-dev.leetserve.com
+      recordType: CNAME
+      targets:
+        - ghs.googlehosted.com
+      recordTTL: 300

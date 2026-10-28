@@ -27,6 +27,15 @@ spec:
         # Domain filters - limit to our domain
         domainFilters:
           - leetserve.com
+        # Record types it manages. TXT is off by default; it's here for
+        # verification records like GitHub Pages' (namespace-dns-records).
+        # It only changes TXT records it created itself (upsert-only, and
+        # its ownership records), so SPF and the like are left alone.
+        managedRecordTypes:
+          - A
+          - AAAA
+          - CNAME
+          - TXT
         # Policy for DNS record synchronization
         policy: upsert-only
         # Log level (info to reduce IDNA warning noise)

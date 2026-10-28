@@ -1,0 +1,15 @@
+# Foil the James (gabeduke/foil-the-james) on Cloud Run. Cloud Run's domain
+# mapping issues the certificate. Moved here from the foil-the-james
+# namespace.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: foil-the-james
+  namespace: dns-records
+spec:
+  endpoints:
+    - dnsName: foilthejames.leetserve.com
+      recordType: CNAME
+      targets:
+        - ghs.googlehosted.com
+      recordTTL: 300
