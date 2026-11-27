@@ -20,6 +20,7 @@ resources:
 - telegraf.yaml
 - prom-stack.yaml
 - cash-for-kids.yaml
+- songshop.yaml
 - watcher-llm-gateway.yaml
 # - reap.yaml
 patches:
