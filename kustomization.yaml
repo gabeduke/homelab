@@ -89,6 +89,21 @@ secretGenerator:
   namespace: fretbook-dev
   envs:
   - ./secrets/fretbook-dev.env
+# Songshop keeps its library in a Google Cloud Storage bucket; nothing is stored
+# in the cluster. GCS_HMAC_ACCESS_ID and GCS_HMAC_SECRET: an HMAC key of the
+# songshop-storage service account.
+- name: songshop-gcs
+  namespace: songshop
+  envs:
+  - ./secrets/songshop-gcs.env
+# Read-only deploy key for the private gabeduke/songshop repo.
+- name: repo-songshop
+  namespace: argocd
+  literals:
+  - type=git
+  - url=git@github.com:gabeduke/songshop.git
+  files:
+  - sshPrivateKey=./secrets/songshop-deploy-key
 generatorOptions:
   disableNameSuffixHash: true
 patches:
@@ -108,3 +123,11 @@ patches:
       namespace: monitoring
       labels:
         grafana_datasource: "1"
+- patch: |-
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: repo-songshop
+      namespace: argocd
+      labels:
+        argocd.argoproj.io/secret-type: repository

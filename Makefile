@@ -42,6 +42,7 @@ namespaces:
 	kubectl create namespace reap || true
 	kubectl create namespace dukeverse || true
 	kubectl create namespace plant-shop || true
+	kubectl create namespace songshop || true
 
 .PHONY: secrets
 secrets:
