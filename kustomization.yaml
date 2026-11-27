@@ -96,6 +96,15 @@ secretGenerator:
   namespace: songshop
   envs:
   - ./secrets/songshop-gcs.env
+# Songshop's hosted MCP endpoint (POST /mcp) and its Google sign-in:
+# SONGSHOP_MCP_ISSUER, SONGSHOP_OAUTH_KEY, SONGSHOP_OAUTH_ALLOW,
+# SONGSHOP_GOOGLE_CLIENT_ID, SONGSHOP_GOOGLE_CLIENT_SECRET (songshop repo,
+# deploy/README.md, "Hosted MCP endpoint"). The deployment treats this Secret
+# as optional: without it the endpoint is off.
+- name: songshop-mcp
+  namespace: songshop
+  envs:
+  - ./secrets/songshop-mcp.env
 # Read-only deploy key for the private gabeduke/songshop repo.
 - name: repo-songshop
   namespace: argocd
