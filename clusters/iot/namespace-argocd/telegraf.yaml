@@ -22,6 +22,11 @@ spec:
         #     --version 1.8.28 -f <this block, dedented>
         # tplVersion 2 is required for the nested topic_parsing / json_v2 tables.
         tplVersion: 2
+        # No input listens on a port (MQTT is outbound), so the chart's Service
+        # renders with an empty ports list, which the API refuses and which
+        # left this Application OutOfSync / Missing.
+        service:
+          enabled: false
         envFromSecret: telegraf-env
         config:
           agent:

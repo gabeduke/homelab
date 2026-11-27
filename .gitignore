@@ -7,6 +7,10 @@
 .k3s.yaml
 .k3s.yaml.bak
 **/*-secret.yaml
+# Everything in secrets/ is a credential source for the root kustomization
+# (deploy keys there have no .env suffix). Only the .tpl placeholders are tracked.
+secrets/*
+!secrets/*.tpl
 **/tmp/
 
 # Session handoff scratchpad. Deliberately untracked -- it is working state, not
